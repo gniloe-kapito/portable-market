@@ -167,6 +167,47 @@ canvas#price-chart{width:100%;display:block}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
 footer{margin-top:50px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);padding:20px 0;border-top:1px solid var(--border)}
 footer a{color:var(--accent);text-decoration:none}
+
+/* Search type toggle */
+.search-wrap{position:relative}
+.search-type-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;background:rgba(0,0,0,.3);border-radius:8px;padding:3px;gap:2px}
+.stt-btn{background:none;border:none;color:var(--text-muted);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;cursor:pointer;transition:all .15s}
+.stt-btn.active{background:rgba(79,142,247,.25);color:var(--accent)}
+#search{padding-right:110px}
+
+/* Owner search result */
+.owner-result-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px;backdrop-filter:blur(12px);transition:border-color .18s,background .18s;animation:cardIn .3s ease both;cursor:pointer}
+.owner-result-item:hover{border-color:rgba(79,142,247,.35);background:var(--surface2)}
+.ori-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ori-name{font-size:15px;font-weight:800}
+.ori-uid{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)}
+.ori-counts{display:flex;gap:8px}
+.ori-count{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 8px;border-radius:6px}
+.ori-count.sell{background:rgba(74,222,128,.1);color:var(--green);border:1px solid rgba(74,222,128,.2)}
+.ori-count.buy{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+
+/* Price modal */
+#price-modal-overlay{position:fixed;inset:0;background:rgba(4,7,18,.9);backdrop-filter:blur(18px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+#price-modal-overlay.open{display:flex}
+#price-modal{background:rgba(10,14,28,.98);border:1px solid rgba(79,142,247,.2);border-radius:22px;padding:28px 28px 22px;max-width:680px;width:100%;position:relative;box-shadow:0 0 80px rgba(79,142,247,.12),0 30px 80px rgba(0,0,0,.7);animation:priceModalIn .25s cubic-bezier(.34,1.3,.64,1)}
+@keyframes priceModalIn{from{opacity:0;transform:scale(.9) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.pm-glow{position:absolute;inset:-1px;border-radius:22px;pointer-events:none;background:linear-gradient(135deg,rgba(79,142,247,.15),rgba(162,89,247,.1),transparent 60%);z-index:0}
+#price-modal>*:not(.pm-glow){position:relative;z-index:1}
+.pm-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:20px}
+.pm-title{font-size:22px;font-weight:800;letter-spacing:-.3px;margin-bottom:3px}
+.pm-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted)}
+.pm-stats{display:flex;gap:18px;flex-wrap:wrap}
+.pm-stat{display:flex;flex-direction:column;gap:3px}
+.pm-stat-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.pm-stat-val{font-size:22px;font-weight:800;font-family:'Syne',sans-serif;letter-spacing:-.5px}
+canvas#pm-canvas{width:100%;display:block;border-radius:10px}
+.pm-no-data{text-align:center;padding:40px 20px}
+
+/* Clickable item name in search results */
+.sri-name-btn{cursor:pointer;transition:color .15s;display:inline}
+.sri-name-btn:hover{color:var(--accent)}
+.sri-name-btn::after{content:' 📈';font-size:11px;opacity:.5}
+.sri-name-btn:hover::after{opacity:1}
 </style>
 </head>
 <body>
@@ -191,6 +232,10 @@ footer a{color:var(--accent);text-decoration:none}
     <div class="search-wrap">
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input type="text" id="search" placeholder="Поиск товара по всем лавкам...">
+      <div class="search-type-toggle">
+        <button class="stt-btn active" id="stt-item" onclick="setSearchType('item')">Товар</button>
+        <button class="stt-btn" id="stt-owner" onclick="setSearchType('owner')">Ник</button>
+      </div>
     </div>
     <button class="icon-btn" onclick="loadData()">
       <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
@@ -271,11 +316,37 @@ footer a{color:var(--accent);text-decoration:none}
   </footer>
 </div>
 
-<!-- MODAL -->
+<!-- LAVKA MODAL -->
 <div id="modal-overlay" onclick="closeModal(event)">
   <div id="modal">
     <button class="modal-close" onclick="closeModal()">✕</button>
     <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- PRICE CHART MODAL -->
+<div id="price-modal-overlay" onclick="closePriceModal(event)">
+  <div id="price-modal">
+    <button class="modal-close" onclick="closePriceModal()" style="top:16px;right:16px">✕</button>
+    <div class="pm-glow" id="pm-glow"></div>
+    <div class="pm-header">
+      <div>
+        <div class="pm-title" id="pm-title">—</div>
+        <div class="pm-sub">Средняя цена продажи · последние 7 дней</div>
+      </div>
+      <div class="pm-stats">
+        <div class="pm-stat"><div class="pm-stat-label">Сейчас</div><div class="pm-stat-val" id="pm-avg" style="color:var(--accent)">—</div></div>
+        <div class="pm-stat"><div class="pm-stat-label">Мин</div><div class="pm-stat-val" id="pm-min" style="color:var(--green)">—</div></div>
+        <div class="pm-stat"><div class="pm-stat-label">Макс</div><div class="pm-stat-val" id="pm-max" style="color:var(--red)">—</div></div>
+        <div class="pm-stat"><div class="pm-stat-label">Объём</div><div class="pm-stat-val" id="pm-vol" style="color:var(--text-dim)">—</div></div>
+      </div>
+    </div>
+    <canvas id="pm-canvas"></canvas>
+    <div class="pm-no-data" id="pm-no-data" style="display:none">
+      <div style="font-size:32px;margin-bottom:10px">📊</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text-dim)">Нет данных о ценах</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Для этого сервера история цен недоступна</div>
+    </div>
   </div>
 </div>
 
@@ -538,9 +609,28 @@ function closeModal(e){
 }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.getElementById('modal-overlay').classList.remove('open'); });
 
+// ── SEARCH TYPE ────────────────────────────
+S.searchType='item'; // 'item' | 'owner'
+
+function setSearchType(t){
+  S.searchType=t;
+  document.getElementById('stt-item').classList.toggle('active',t==='item');
+  document.getElementById('stt-owner').classList.toggle('active',t==='owner');
+  const inp=document.getElementById('search');
+  inp.placeholder=t==='item'?'Поиск товара по всем лавкам...':'Поиск лавки по нику владельца...';
+  const q=inp.value.trim();
+  if(q.length>1) doSearch(q);
+}
+
 // ── SEARCH ─────────────────────────────────
 function doSearch(q){
   if(!q){ setMode('lavkas'); return; }
+  setMode('search');
+  if(S.searchType==='owner') doSearchOwner(q);
+  else doSearchItem(q);
+}
+
+function doSearchItem(q){
   const ql=q.toLowerCase();
   const matchIds=new Set();
   Object.entries(S.itemsData).forEach(([id,name])=>{ if(name&&name.toLowerCase().includes(ql)) matchIds.add(parseInt(id)); });
@@ -561,9 +651,11 @@ function doSearch(q){
   const sortFn = k.includes('desc')?(a,b)=>b.price-a.price:k.includes('asc')?(a,b)=>a.price-b.price:null;
   if(sortFn){ sell.sort(sortFn); buy.sort(sortFn); }
 
-  // Render
+  // Show item search cols, hide owner col
   document.getElementById('sell-col-title').textContent=`ПРОДАЮТ · ${sell.length}`;
   document.getElementById('buy-col-title').textContent=`ПОКУПАЮТ · ${buy.length}`;
+  document.getElementById('sell-col-title').style.display='';
+  document.getElementById('buy-col-title').style.display='';
   document.getElementById('sell-results').innerHTML=sell.length?sell.map((it,i)=>resHTML(it,'sell',i)).join(''):`<div style="color:var(--text-muted);font-size:12px;padding:12px 4px">Не найдено</div>`;
   document.getElementById('buy-results').innerHTML=buy.length?buy.map((it,i)=>resHTML(it,'buy',i)).join(''):`<div style="color:var(--text-muted);font-size:12px;padding:12px 4px">Не найдено</div>`;
 
@@ -572,14 +664,30 @@ function doSearch(q){
   if(firstName) drawChart(firstName); else document.getElementById('chart-panel').style.display='none';
 }
 
+function doSearchOwner(q){
+  const ql=q.toLowerCase();
+  // Find matching lavkas
+  const matched=S.lavkas.filter(lk=>(lk.username||'').toLowerCase().includes(ql));
+
+  document.getElementById('chart-panel').style.display='none';
+  // Use sell column full-width for owner results
+  document.getElementById('sell-col-title').textContent=`ЛАВКИ · ${matched.length}`;
+  document.getElementById('buy-col-title').textContent='';
+  document.getElementById('buy-results').innerHTML='';
+  document.getElementById('sell-results').innerHTML=matched.length
+    ? matched.map((lk,i)=>ownerResHTML(lk,i)).join('')
+    : `<div style="color:var(--text-muted);font-size:12px;padding:12px 4px">Ник не найден</div>`;
+}
+
 function resHTML(it,type,idx){
   const srvL=SERVERS.find(s=>s.id===it.srvId)?.label||`srv${it.srvId}`;
   const cur=it.srvId===0?'VC$':'SA$';
-  // Serialize lavka data for modal open — store index
   const lavkaIdx=S.lavkas.indexOf(it.lk);
+  // Escape item name for use in onclick
+  const nameEsc=it.name.replace(/'/g,"\\'").replace(/\\/g,'\\\\');
   return `<div class="search-result-item" style="animation-delay:${Math.min(idx*.02,.35)}s">
     <div class="sri-top">
-      <div class="sri-name">${esc(it.name)}</div>
+      <div class="sri-name sri-name-btn" onclick="openPriceModal('${nameEsc}')">${esc(it.name)}</div>
       <div class="sri-price ${type}">${fmt(it.price,true)} ${cur}</div>
     </div>
     <div class="sri-meta">
@@ -587,6 +695,21 @@ function resHTML(it,type,idx){
       <span class="sri-tag">${esc(it.owner||'—')}</span>
       <span class="sri-tag">${it.count} шт</span>
       <span class="sri-tag">${esc(srvL)}</span>
+    </div>
+  </div>`;
+}
+
+function ownerResHTML(lk,idx){
+  const srvL=SERVERS.find(s=>s.id===lk.serverId)?.label||`srv${lk.serverId}`;
+  return `<div class="owner-result-item" style="animation-delay:${Math.min(idx*.02,.35)}s" onclick="openModal(S.lavkas[${S.lavkas.indexOf(lk)}])">
+    <div class="ori-top">
+      <div class="ori-name">${esc(lk.username||'—')}</div>
+      <div class="ori-uid">Лавка #${lk.LavkaUid}</div>
+    </div>
+    <div class="ori-counts">
+      <span class="ori-count sell">Продаёт ${(lk.items_sell||[]).length} тов.</span>
+      <span class="ori-count buy">Покупает ${(lk.items_buy||[]).length} тов.</span>
+      <span class="sri-tag" style="font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 8px">${esc(srvL)}</span>
     </div>
   </div>`;
 }
@@ -660,6 +783,153 @@ function drawChart(itemName){
   const step=Math.max(1,Math.floor(prices.length/5));
   dates.forEach((d,i)=>{ if(i%step===0||i===dates.length-1) ctx.fillText(d.slice(5),tx(i),H-pad.b+16); });
 }
+
+// ── PRICE MODAL ────────────────────────────
+function openPriceModal(itemName){
+  const overlay=document.getElementById('price-modal-overlay');
+  const noData=document.getElementById('pm-no-data');
+  const canvas=document.getElementById('pm-canvas');
+  document.getElementById('pm-title').textContent=itemName;
+  overlay.classList.add('open');
+
+  const data=S.avgPrices?.[itemName];
+  if(!data||!data.list?.length){
+    noData.style.display='block';
+    canvas.style.display='none';
+    document.getElementById('pm-avg').textContent='—';
+    document.getElementById('pm-min').textContent='—';
+    document.getElementById('pm-max').textContent='—';
+    document.getElementById('pm-vol').textContent='—';
+    return;
+  }
+  noData.style.display='none';
+  canvas.style.display='block';
+
+  // last 7 days
+  const pts=data.list.slice(0,7).reverse();
+  const prices=pts.map(p=>p[4]||0);
+  const dates=pts.map(p=>p[0]);
+  const vols=pts.map(p=>p[1]||0);
+  const mn=Math.min(...prices), mx=Math.max(...prices);
+  const tot=vols.reduce((a,b)=>a+b,0);
+
+  document.getElementById('pm-avg').textContent=fmt(prices[prices.length-1],true);
+  document.getElementById('pm-min').textContent=fmt(mn,true);
+  document.getElementById('pm-max').textContent=fmt(mx,true);
+  document.getElementById('pm-vol').textContent=fmtN(tot);
+
+  // Dynamic glow color based on trend
+  const trend=prices[prices.length-1]-prices[0];
+  const glowColor=trend>0?'79,222,128':trend<0?'248,113,113':'79,142,247';
+  document.getElementById('pm-glow').style.background=
+    `linear-gradient(135deg,rgba(${glowColor},.18),rgba(162,89,247,.1),transparent 60%)`;
+  document.getElementById('price-modal').style.boxShadow=
+    `0 0 100px rgba(${glowColor},.18),0 0 40px rgba(${glowColor},.1),0 30px 80px rgba(0,0,0,.7)`;
+  document.getElementById('price-modal').style.borderColor=`rgba(${glowColor},.3)`;
+
+  // Draw canvas
+  requestAnimationFrame(()=>drawPriceModalChart(canvas, prices, dates, mn, mx, glowColor));
+}
+
+function drawPriceModalChart(canvas, prices, dates, mn, mx, glowColor){
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.parentElement.clientWidth-56, H=240;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const pad={t:20,r:20,b:44,l:72};
+  const cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
+  const rng=mx-mn||1;
+  const n=prices.length;
+  const xS=n>1?cW/(n-1):cW;
+  const tx=i=>pad.l+(n>1?i*xS:cW/2);
+  const ty=v=>pad.t+cH-((v-mn)/rng)*cH;
+
+  // Subtle grid
+  ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.lineWidth=1;
+  for(let g=0;g<=4;g++){
+    const y=pad.t+(cH/4)*g;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cW,y); ctx.stroke();
+    ctx.fillStyle='rgba(232,234,246,.22)';
+    ctx.font=`10px 'JetBrains Mono',monospace`; ctx.textAlign='right';
+    ctx.fillText(fmtN(mx-(rng/4)*g), pad.l-8, y+4);
+  }
+
+  // Glow area fill — two layers for depth
+  ['rgba('+glowColor+',.18)','rgba('+glowColor+',.08)'].forEach((c,li)=>{
+    const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+cH);
+    grad.addColorStop(0,c); grad.addColorStop(1,'rgba('+glowColor+',0)');
+    ctx.beginPath();
+    ctx.moveTo(tx(0),ty(prices[0]));
+    for(let i=1;i<n;i++){
+      // smooth curve via bezier
+      const cpx=(tx(i-1)+tx(i))/2;
+      ctx.bezierCurveTo(cpx,ty(prices[i-1]),cpx,ty(prices[i]),tx(i),ty(prices[i]));
+    }
+    ctx.lineTo(tx(n-1),pad.t+cH); ctx.lineTo(tx(0),pad.t+cH);
+    ctx.closePath();
+    ctx.fillStyle=grad; ctx.fill();
+  });
+
+  // Glow line shadow
+  ctx.save();
+  ctx.shadowColor=`rgba(${glowColor},.7)`;
+  ctx.shadowBlur=li=>14;
+  ctx.beginPath();
+  ctx.strokeStyle=`rgba(${glowColor},1)`; ctx.lineWidth=2.5; ctx.lineJoin='round';
+  ctx.moveTo(tx(0),ty(prices[0]));
+  for(let i=1;i<n;i++){
+    const cpx=(tx(i-1)+tx(i))/2;
+    ctx.bezierCurveTo(cpx,ty(prices[i-1]),cpx,ty(prices[i]),tx(i),ty(prices[i]));
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  // Second pass for crisp line on top
+  ctx.beginPath();
+  ctx.strokeStyle=`rgba(${glowColor},.9)`; ctx.lineWidth=2; ctx.lineJoin='round';
+  ctx.moveTo(tx(0),ty(prices[0]));
+  for(let i=1;i<n;i++){
+    const cpx=(tx(i-1)+tx(i))/2;
+    ctx.bezierCurveTo(cpx,ty(prices[i-1]),cpx,ty(prices[i]),tx(i),ty(prices[i]));
+  }
+  ctx.stroke();
+
+  // Data point dots with glow
+  prices.forEach((p,i)=>{
+    ctx.save();
+    ctx.shadowColor=`rgba(${glowColor},.9)`; ctx.shadowBlur=12;
+    ctx.beginPath(); ctx.arc(tx(i),ty(p),5,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${glowColor},1)`; ctx.fill();
+    ctx.restore();
+    // White center
+    ctx.beginPath(); ctx.arc(tx(i),ty(p),2.5,0,Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.fill();
+  });
+
+  // Date labels below
+  ctx.fillStyle='rgba(232,234,246,.35)';
+  ctx.font=`10px 'JetBrains Mono',monospace`; ctx.textAlign='center';
+  dates.forEach((d,i)=>{ ctx.fillText(d.slice(5),tx(i),H-pad.b+18); });
+
+  // Price labels next to dots
+  ctx.fillStyle=`rgba(${glowColor},.85)`;
+  ctx.font=`bold 10px 'Syne',sans-serif`; ctx.textAlign='center';
+  prices.forEach((p,i)=>{
+    const y=ty(p);
+    const above=y-pad.t>16;
+    ctx.fillText(fmtN(p),tx(i),above?y-10:y+18);
+  });
+}
+
+function closePriceModal(e){
+  if(!e||e.target===document.getElementById('price-modal-overlay')||e.currentTarget?.className==='modal-close')
+    document.getElementById('price-modal-overlay').classList.remove('open');
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); closePriceModal(); } });
 
 // ── HELPERS ────────────────────────────────
 function fmt(n,full=false){
