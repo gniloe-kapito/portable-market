@@ -3,659 +3,171 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ArzMarket — Цены Arizona RP</title>
+<title>ArzMarket — portable market BY Nikitos_Ciganin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #080b14;
-    --glass: rgba(255,255,255,0.04);
-    --glass-border: rgba(255,255,255,0.08);
-    --glass-hover: rgba(255,255,255,0.07);
-    --accent: #4f8ef7;
-    --accent2: #a259f7;
-    --accent3: #f75959;
-    --accent4: #59f7c8;
-    --text: #e8eaf6;
-    --text-dim: rgba(232,234,246,0.45);
-    --text-muted: rgba(232,234,246,0.25);
-    --green: #4ade80;
-    --red: #f87171;
-    --card-radius: 18px;
-  }
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ─── BOKEH BACKGROUND ─── */
-  #bokeh {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    overflow: hidden;
-  }
-
-  .bokeh-light {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(110px);
-    opacity: 0;
-    animation: bokehFloat var(--dur) cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
-    will-change: transform, opacity;
-  }
-
-  @keyframes bokehFloat {
-    0%   { opacity: var(--op-min); transform: translate(0px, 0px) scale(1); }
-    20%  { opacity: calc(var(--op-min) * 1.5); }
-    50%  { opacity: var(--op-max); transform: translate(calc(var(--tx) * .55), calc(var(--ty) * .6)) scale(calc(1 + (var(--sc) - 1) * .55)); }
-    80%  { opacity: calc(var(--op-max) * .7); }
-    100% { opacity: var(--op-min); transform: translate(var(--tx), var(--ty)) scale(var(--sc)); }
-  }
-
-  /* ─── LAYOUT ─── */
-  #app {
-    position: relative;
-    z-index: 1;
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 0 24px 80px;
-  }
-
-  /* ─── HEADER ─── */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 32px 0 48px;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-
-  .logo-icon {
-    width: 44px;
-    height: 44px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    box-shadow: 0 0 24px rgba(79,142,247,0.4);
-  }
-
-  .logo-text {
-    font-size: 24px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-  }
-
-  .logo-text span {
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .logo-sub {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-top: 2px;
-  }
-
-  .status-pill {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    border-radius: 100px;
-    padding: 8px 16px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--text-dim);
-    backdrop-filter: blur(12px);
-  }
-
-  .status-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--green);
-    box-shadow: 0 0 8px var(--green);
-    animation: pulse 2s infinite;
-  }
-
-  .status-dot.loading { background: #f7c948; box-shadow: 0 0 8px #f7c948; }
-  .status-dot.error   { background: var(--red); box-shadow: 0 0 8px var(--red); }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.4; }
-  }
-
-  /* ─── CONTROLS ─── */
-  .controls {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 12px;
-    margin-bottom: 32px;
-    align-items: center;
-  }
-
-  @media (max-width: 700px) {
-    .controls { grid-template-columns: 1fr 1fr; }
-    .controls .search-wrap { grid-column: 1 / -1; }
-  }
-
-  .search-wrap {
-    position: relative;
-  }
-
-  .search-wrap svg {
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted);
-    pointer-events: none;
-  }
-
-  #search {
-    width: 100%;
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    padding: 14px 16px 14px 46px;
-    color: var(--text);
-    font-family: 'Syne', sans-serif;
-    font-size: 15px;
-    outline: none;
-    backdrop-filter: blur(12px);
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-
-  #search::placeholder { color: var(--text-muted); }
-
-  #search:focus {
-    border-color: rgba(79,142,247,0.5);
-    box-shadow: 0 0 0 3px rgba(79,142,247,0.1);
-  }
-
-  .ctrl-btn {
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    padding: 12px 20px;
-    color: var(--text-dim);
-    font-family: 'Syne', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    backdrop-filter: blur(12px);
-    transition: all 0.2s;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .ctrl-btn:hover {
-    background: var(--glass-hover);
-    color: var(--text);
-    border-color: rgba(255,255,255,0.15);
-  }
-
-  .ctrl-btn.active {
-    background: rgba(79,142,247,0.15);
-    border-color: rgba(79,142,247,0.4);
-    color: var(--accent);
-  }
-
-  /* ─── SERVER SELECTOR ─── */
-  .server-bar {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 28px;
-    align-items: center;
-    overflow-x: auto;
-    padding-bottom: 6px;
-    scrollbar-width: thin;
-  }
-
-  #server-chips {
-    display: flex;
-    gap: 6px;
-    flex-wrap: nowrap;
-  }
-
-  .server-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    margin-right: 4px;
-  }
-
-  .server-chip {
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    border-radius: 100px;
-    padding: 6px 14px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: var(--text-dim);
-    backdrop-filter: blur(8px);
-  }
-
-  .server-chip:hover {
-    color: var(--text);
-    border-color: rgba(255,255,255,0.2);
-  }
-
-  .server-chip.active {
-    background: linear-gradient(135deg, rgba(79,142,247,0.25), rgba(162,89,247,0.25));
-    border-color: rgba(79,142,247,0.5);
-    color: var(--text);
-    box-shadow: 0 0 16px rgba(79,142,247,0.15);
-  }
-
-  /* ─── STATS BAR ─── */
-  .stats-bar {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
-    margin-bottom: 32px;
-  }
-
-  .stat-card {
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--card-radius);
-    padding: 18px 20px;
-    backdrop-filter: blur(16px);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .stat-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-  }
-
-  .stat-value {
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: -1px;
-  }
-
-  .stat-value.accent  { color: var(--accent); }
-  .stat-value.accent2 { color: var(--accent2); }
-  .stat-value.accent4 { color: var(--accent4); }
-
-  /* ─── GRID ─── */
-  #grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 14px;
-  }
-
-  /* ─── ITEM CARD ─── */
-  .item-card {
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--card-radius);
-    padding: 20px;
-    backdrop-filter: blur(20px);
-    cursor: pointer;
-    transition: transform 0.22s, border-color 0.22s, box-shadow 0.22s, background 0.22s;
-    position: relative;
-    overflow: hidden;
-    animation: cardIn 0.4s ease both;
-  }
-
-  @keyframes cardIn {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .item-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(79,142,247,0.06), transparent 60%);
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-
-  .item-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(79,142,247,0.3);
-    box-shadow: 0 8px 40px rgba(79,142,247,0.1), 0 0 0 1px rgba(79,142,247,0.1);
-    background: var(--glass-hover);
-  }
-
-  .item-card:hover::before { opacity: 1; }
-
-  .item-card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-
-  .item-name {
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 1.2;
-    word-break: break-word;
-  }
-
-  .item-date {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--text-muted);
-    white-space: nowrap;
-    margin-top: 3px;
-  }
-
-  .item-server-badge {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    background: rgba(79,142,247,0.12);
-    border: 1px solid rgba(79,142,247,0.2);
-    border-radius: 6px;
-    padding: 3px 7px;
-    color: var(--accent);
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  .item-prices {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
-  .price-box {
-    background: rgba(0,0,0,0.2);
-    border-radius: 10px;
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  .price-box-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-
-  .price-box.buy  .price-box-label { color: var(--green); }
-  .price-box.sell .price-box-label { color: var(--red); }
-
-  .price-box-value {
-    font-size: 18px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    line-height: 1;
-  }
-
-  .price-box.buy  .price-box-value { color: var(--green); }
-  .price-box.sell .price-box-value { color: var(--red); }
-
-  .price-box-vol {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-
-  .price-single {
-    background: rgba(0,0,0,0.2);
-    border-radius: 10px;
-    padding: 10px 12px;
-    grid-column: 1 / -1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .price-single .price-box-label { color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
-  .price-single .price-box-value { font-size: 20px; font-weight: 800; color: var(--accent); }
-
-  /* ─── TREND INDICATOR ─── */
-  .trend {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    padding: 2px 6px;
-    border-radius: 6px;
-    margin-top: 4px;
-  }
-
-  .trend.up   { color: var(--green); background: rgba(74,222,128,0.1); }
-  .trend.down { color: var(--red);   background: rgba(248,113,113,0.1); }
-  .trend.flat { color: var(--text-muted); background: rgba(255,255,255,0.04); }
-
-  /* ─── MODAL ─── */
-  #modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(8,11,20,0.8);
-    backdrop-filter: blur(12px);
-    z-index: 100;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-
-  #modal-overlay.open { display: flex; }
-
-  #modal {
-    background: rgba(16,20,36,0.95);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 24px;
-    padding: 32px;
-    max-width: 560px;
-    width: 100%;
-    max-height: 90vh;
-    overflow-y: auto;
-    position: relative;
-    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
-    animation: modalIn 0.25s ease;
-  }
-
-  @keyframes modalIn {
-    from { opacity: 0; transform: scale(0.95) translateY(10px); }
-    to   { opacity: 1; transform: scale(1) translateY(0); }
-  }
-
-  .modal-close {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    border-radius: 8px;
-    color: var(--text-dim);
-    cursor: pointer;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-  }
-
-  .modal-close:hover { color: var(--text); background: var(--glass-hover); }
-
-  .modal-title {
-    font-size: 24px;
-    font-weight: 800;
-    margin-bottom: 6px;
-  }
-
-  .modal-subtitle {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-bottom: 24px;
-  }
-
-  .modal-section {
-    margin-bottom: 20px;
-  }
-
-  .modal-section-title {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    margin-bottom: 10px;
-  }
-
-  .history-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .history-row {
-    display: grid;
-    grid-template-columns: 100px 1fr 80px;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    border-radius: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-  }
-
-  .history-row .h-date { color: var(--text-muted); }
-  .history-row .h-price { font-weight: 500; }
-  .history-row .h-vol { color: var(--text-dim); text-align: right; font-size: 10px; }
-
-  /* ─── EMPTY STATE ─── */
-  .empty {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 80px 20px;
-    color: var(--text-muted);
-  }
-
-  .empty-icon { font-size: 48px; margin-bottom: 16px; }
-  .empty-text { font-size: 18px; font-weight: 600; color: var(--text-dim); }
-  .empty-sub  { font-size: 13px; margin-top: 6px; }
-
-  /* ─── LOADING SKELETON ─── */
-  .skeleton {
-    background: linear-gradient(90deg, var(--glass) 25%, rgba(255,255,255,0.07) 50%, var(--glass) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.4s infinite;
-    border-radius: 8px;
-  }
-
-  @keyframes shimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-
-  .skel-card {
-    height: 140px;
-    border-radius: var(--card-radius);
-    border: 1px solid var(--glass-border);
-  }
-
-  /* ─── SCROLLBAR ─── */
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-
-  /* ─── FOOTER ─── */
-  footer {
-    margin-top: 60px;
-    text-align: center;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--text-muted);
-    padding: 24px 0;
-    border-top: 1px solid var(--glass-border);
-  }
-
-  footer a { color: var(--accent); text-decoration: none; }
-
-  /* ─── SORT TABS ─── */
-  .sort-bar {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-  }
-
-  .sort-tab {
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    border-radius: 100px;
-    padding: 5px 14px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    color: var(--text-dim);
-    transition: all 0.18s;
-  }
-
-  .sort-tab:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
-  .sort-tab.active {
-    background: rgba(162,89,247,0.15);
-    border-color: rgba(162,89,247,0.4);
-    color: var(--accent2);
-  }
+:root {
+  --bg:#080b14; --surface:rgba(255,255,255,.04); --surface2:rgba(255,255,255,.07);
+  --border:rgba(255,255,255,.08); --border2:rgba(255,255,255,.14);
+  --accent:#4f8ef7; --accent2:#a259f7; --green:#4ade80; --red:#f87171; --yellow:#fbbf24;
+  --text:#e8eaf6; --text-dim:rgba(232,234,246,.5); --text-muted:rgba(232,234,246,.28);
+  --radius:14px; --radius-sm:8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* BOKEH */
+#bokeh{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.bokeh-light{position:absolute;border-radius:50%;filter:blur(110px);opacity:0;animation:bokehFloat var(--dur) cubic-bezier(.37,0,.63,1) infinite alternate;will-change:transform,opacity}
+@keyframes bokehFloat{
+  0%{opacity:var(--op-min);transform:translate(0px,0px) scale(1)}
+  20%{opacity:calc(var(--op-min)*1.5)}
+  50%{opacity:var(--op-max);transform:translate(calc(var(--tx)*.55),calc(var(--ty)*.6)) scale(calc(1+(var(--sc)-1)*.55))}
+  80%{opacity:calc(var(--op-max)*.7)}
+  100%{opacity:var(--op-min);transform:translate(var(--tx),var(--ty)) scale(var(--sc))}
+}
+
+/* LAYOUT */
+#app{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:0 20px 60px}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;padding:24px 0 20px;gap:12px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 20px rgba(79,142,247,.4);flex-shrink:0}
+.logo-text{font-size:20px;font-weight:800;letter-spacing:-.5px}
+.logo-text span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.status-pill{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:7px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);backdrop-filter:blur(12px)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+.status-dot.loading{background:var(--yellow);box-shadow:0 0 8px var(--yellow)}
+.status-dot.error{background:var(--red);box-shadow:0 0 8px var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* TOPBAR */
+.topbar{display:grid;grid-template-columns:1fr auto auto;gap:10px;margin-bottom:14px;align-items:center}
+@media(max-width:640px){.topbar{grid-template-columns:1fr 1fr}.topbar .search-wrap{grid-column:1/-1}}
+.search-wrap{position:relative}
+.search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none}
+#search{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px 12px 42px;color:var(--text);font-family:'Syne',sans-serif;font-size:14px;outline:none;backdrop-filter:blur(12px);transition:border-color .2s,box-shadow .2s}
+#search::placeholder{color:var(--text-muted)}
+#search:focus{border-color:rgba(79,142,247,.5);box-shadow:0 0 0 3px rgba(79,142,247,.1)}
+.icon-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px 16px;color:var(--text-dim);font-family:'Syne',sans-serif;font-size:12px;font-weight:600;cursor:pointer;backdrop-filter:blur(12px);transition:all .18s;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.icon-btn:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+.icon-btn.active{background:rgba(79,142,247,.15);border-color:rgba(79,142,247,.4);color:var(--accent)}
+
+/* SERVER BAR */
+.server-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.server-bar::-webkit-scrollbar{height:3px}
+.server-bar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.srv-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;white-space:nowrap;margin-right:2px;flex-shrink:0}
+.srv-chip{background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);transition:all .18s;white-space:nowrap;flex-shrink:0}
+.srv-chip:hover{color:var(--text);border-color:var(--border2)}
+.srv-chip.active{background:linear-gradient(135deg,rgba(79,142,247,.2),rgba(162,89,247,.2));border-color:rgba(79,142,247,.5);color:var(--text);box-shadow:0 0 12px rgba(79,142,247,.12)}
+
+/* STATS ROW */
+.stats-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.stat-pill{background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;display:flex;gap:7px;align-items:center;backdrop-filter:blur(10px)}
+.stat-pill .sv{font-weight:700}.stat-pill .sk{color:var(--text-muted)}
+.sv.a{color:var(--accent)}.sv.b{color:var(--accent2)}.sv.c{color:var(--green)}.sv.r{color:var(--red)}
+
+/* MODE TABS */
+.mode-tabs{display:flex;gap:6px;margin-bottom:18px}
+.mode-tab{background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:7px 18px;font-size:13px;font-weight:700;cursor:pointer;color:var(--text-dim);transition:all .18s}
+.mode-tab:hover{color:var(--text)}
+.mode-tab.active{background:rgba(79,142,247,.18);border-color:rgba(79,142,247,.45);color:var(--text)}
+
+/* LAVKA GRID */
+#lavka-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.lavka-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;backdrop-filter:blur(16px);transition:transform .2s,border-color .2s,box-shadow .2s;cursor:pointer;position:relative;overflow:hidden;animation:cardIn .35s ease both}
+.lavka-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(79,142,247,.05),transparent 60%);opacity:0;transition:opacity .25s}
+.lavka-card:hover{transform:translateY(-2px);border-color:rgba(79,142,247,.3);box-shadow:0 6px 28px rgba(79,142,247,.1)}
+.lavka-card:hover::before{opacity:1}
+@keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.lc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:8px}
+.lc-owner{font-size:14px;font-weight:700}
+.lc-uid{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);margin-top:2px}
+.lc-srv-badge{font-family:'JetBrains Mono',monospace;font-size:9px;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.2);border-radius:6px;padding:3px 7px;color:var(--accent);white-space:nowrap;flex-shrink:0}
+.lc-counts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.lc-count-box{background:rgba(0,0,0,.2);border-radius:var(--radius-sm);padding:8px 10px}
+.lc-count-label{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}
+.lc-count-box.sell .lc-count-label{color:var(--green)}
+.lc-count-box.buy  .lc-count-label{color:var(--red)}
+.lc-count-val{font-size:22px;font-weight:800}
+.lc-count-box.sell .lc-count-val{color:var(--green)}
+.lc-count-box.buy  .lc-count-val{color:var(--red)}
+.lc-items-preview{margin-top:10px;display:flex;flex-wrap:wrap;gap:4px}
+.item-tag{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:6px;padding:2px 7px;font-size:10px;color:var(--text-dim)}
+
+/* SEARCH VIEW */
+#search-view{display:none}
+#search-view.visible{display:flex;flex-direction:column;gap:16px}
+
+/* Chart */
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;backdrop-filter:blur(16px)}
+.chart-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.chart-title{font-size:16px;font-weight:800;margin-bottom:3px}
+.chart-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted)}
+.chart-stats{display:flex;gap:20px;flex-wrap:wrap}
+.cstat{display:flex;flex-direction:column;gap:2px}
+.cstat-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px}
+.cstat-val{font-size:20px;font-weight:800}
+canvas#price-chart{width:100%;display:block}
+
+/* Search results columns */
+.search-results-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.search-results-cols{grid-template-columns:1fr}}
+.src-col-title{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;padding:0 2px}
+.src-col-title.sell{color:var(--green)}.src-col-title.buy{color:var(--red)}
+.search-result-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px;backdrop-filter:blur(12px);transition:border-color .18s,background .18s;animation:cardIn .3s ease both}
+.search-result-item:hover{border-color:var(--border2);background:var(--surface2)}
+.sri-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.sri-name{font-size:13px;font-weight:700}
+.sri-price{font-size:17px;font-weight:800;white-space:nowrap}
+.sri-price.sell{color:var(--green)}.sri-price.buy{color:var(--red)}
+.sri-meta{display:flex;gap:6px;flex-wrap:wrap}
+.sri-tag{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;padding:2px 7px}
+.sri-tag.uid{color:var(--accent);border-color:rgba(79,142,247,.25);background:rgba(79,142,247,.08);cursor:pointer}
+.sri-tag.uid:hover{background:rgba(79,142,247,.16)}
+
+/* MODAL */
+#modal-overlay{position:fixed;inset:0;background:rgba(8,11,20,.85);backdrop-filter:blur(14px);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+#modal-overlay.open{display:flex}
+#modal{background:rgba(14,18,32,.97);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;max-width:700px;width:100%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 30px 70px rgba(0,0,0,.6);animation:modalIn .22s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-close{position:absolute;top:18px;right:18px;background:var(--surface);border:1px solid var(--border);border-radius:7px;color:var(--text-dim);cursor:pointer;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .18s}
+.modal-close:hover{color:var(--text);background:var(--surface2)}
+.modal-title{font-size:20px;font-weight:800;margin-bottom:3px}
+.modal-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);margin-bottom:20px}
+.modal-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:500px){.modal-cols{grid-template-columns:1fr}}
+.modal-col-title{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;padding:0 2px}
+.modal-col-title.sell{color:var(--green)}.modal-col-title.buy{color:var(--red)}
+.modal-item-row{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:rgba(0,0,0,.2);border-radius:var(--radius-sm);margin-bottom:5px;gap:8px}
+.mir-name{font-size:12px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mir-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);white-space:nowrap}
+.mir-price{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;white-space:nowrap}
+.mir-price.sell{color:var(--green)}.mir-price.buy{color:var(--red)}
+
+/* MISC */
+.empty{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-muted)}
+.empty-icon{font-size:44px;margin-bottom:14px}
+.empty-text{font-size:17px;font-weight:600;color:var(--text-dim)}
+.skeleton{background:linear-gradient(90deg,var(--surface) 25%,rgba(255,255,255,.07) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:var(--radius);border:1px solid var(--border)}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel-card{height:130px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+footer{margin-top:50px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);padding:20px 0;border-top:1px solid var(--border)}
+footer a{color:var(--accent);text-decoration:none}
 </style>
 </head>
 <body>
-
-<!-- BOKEH LIGHTS -->
 <div id="bokeh"></div>
-
 <div id="app">
 
-  <!-- HEADER -->
   <header>
     <div class="logo">
       <div class="logo-icon">◈</div>
@@ -670,70 +182,79 @@
     </div>
   </header>
 
-  <!-- STATS -->
-  <div class="stats-bar">
-    <div class="stat-card">
-      <div class="stat-label">Товаров</div>
-      <div class="stat-value accent" id="stat-total">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Источник данных</div>
-      <div class="stat-value accent2" id="stat-source" style="font-size:14px;font-weight:700;margin-top:4px;">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Сервер</div>
-      <div class="stat-value accent4" id="stat-server">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Обновлено</div>
-      <div class="stat-value" id="stat-updated" style="font-size:16px;font-weight:700;margin-top:4px;color:var(--text-dim)">—</div>
-    </div>
-  </div>
-
-  <!-- SERVER BAR -->
-  <div class="server-bar">
-    <span class="server-label">Сервер</span>
-    <div id="server-chips"></div>
-  </div>
-
-  <!-- CONTROLS -->
-  <div class="controls">
+  <div class="topbar">
     <div class="search-wrap">
-      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-      </svg>
-      <input type="text" id="search" placeholder="Поиск товара...">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="search" placeholder="Поиск товара по всем лавкам...">
     </div>
-    <button class="ctrl-btn" id="btn-mode" onclick="toggleMode()">
-      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M3 6h18M3 12h18M3 18h18"/>
-      </svg>
-      Вид
-    </button>
-    <button class="ctrl-btn" onclick="loadData()">
-      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>
-      </svg>
+    <button class="icon-btn" onclick="loadData()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
       Обновить
     </button>
+    <button class="icon-btn" id="sort-btn" onclick="cycleSort()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+      <span id="sort-label">Сортировка</span>
+    </button>
   </div>
 
-  <!-- SORT -->
-  <div class="sort-bar">
-    <span class="server-label" style="align-self:center">Сортировка</span>
-    <button class="sort-tab active" data-sort="name" onclick="setSort('name', this)">По названию</button>
-    <button class="sort-tab" data-sort="price-asc" onclick="setSort('price-asc', this)">Цена ↑</button>
-    <button class="sort-tab" data-sort="price-desc" onclick="setSort('price-desc', this)">Цена ↓</button>
-    <button class="sort-tab" data-sort="volume" onclick="setSort('volume', this)">По объёму</button>
-    <button class="sort-tab" data-sort="date" onclick="setSort('date', this)">Новые сделки</button>
+  <div class="server-bar">
+    <span class="srv-label">Сервер</span>
+    <div id="server-chips" style="display:flex;gap:6px"></div>
   </div>
 
-  <!-- GRID -->
-  <div id="grid"></div>
+  <div class="stats-row">
+    <div class="stat-pill"><span class="sk">Лавок:</span><span class="sv a" id="s-lavkas">—</span></div>
+    <div class="stat-pill"><span class="sk">Продажа:</span><span class="sv c" id="s-sell">—</span></div>
+    <div class="stat-pill"><span class="sk">Покупка:</span><span class="sv r" id="s-buy">—</span></div>
+    <div class="stat-pill"><span class="sk">Сервер:</span><span class="sv b" id="s-server">—</span></div>
+    <div class="stat-pill"><span class="sk">Обновлено:</span><span class="sv" id="s-updated" style="color:var(--text-dim)">—</span></div>
+  </div>
+
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="tab-lavkas" onclick="setMode('lavkas')">🏪 Лавки</button>
+    <button class="mode-tab" id="tab-search" onclick="setMode('search')">🔍 Поиск</button>
+  </div>
+
+  <!-- LAVKA GRID -->
+  <div id="lavka-grid"></div>
+
+  <!-- SEARCH VIEW -->
+  <div id="search-view">
+    <!-- Price chart -->
+    <div id="chart-panel" style="display:none">
+      <div class="chart-wrap">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title" id="chart-item-name">—</div>
+            <div class="chart-sub">Средняя цена продажи · последние 30 дней</div>
+          </div>
+          <div class="chart-stats">
+            <div class="cstat"><div class="cstat-label">Сейчас</div><div class="cstat-val" id="chart-avg" style="color:var(--accent)">—</div></div>
+            <div class="cstat"><div class="cstat-label">Мин 30д</div><div class="cstat-val" id="chart-min" style="color:var(--green)">—</div></div>
+            <div class="cstat"><div class="cstat-label">Макс 30д</div><div class="cstat-val" id="chart-max" style="color:var(--red)">—</div></div>
+            <div class="cstat"><div class="cstat-label">Объём 30д</div><div class="cstat-val" id="chart-vol" style="color:var(--text-dim)">—</div></div>
+          </div>
+        </div>
+        <canvas id="price-chart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Two columns: sell / buy -->
+    <div class="search-results-cols">
+      <div>
+        <div class="src-col-title sell" id="sell-col-title">ПРОДАЮТ · 0</div>
+        <div id="sell-results"></div>
+      </div>
+      <div>
+        <div class="src-col-title buy" id="buy-col-title">ПОКУПАЮТ · 0</div>
+        <div id="buy-results"></div>
+      </div>
+    </div>
+  </div>
 
   <footer>
-    ArzMarket Price Tracker &nbsp;·&nbsp;
-    Данные: <a href="https://api.arz.market" target="_blank">api.arz.market</a> &amp;
+    ArzMarket &nbsp;·&nbsp;
+    <a href="https://api.arz.market" target="_blank">api.arz.market</a> &amp;
     <a href="https://github.com/FREYM1337/forumnick" target="_blank">GitHub FREYM1337</a>
     &nbsp;·&nbsp; Не является официальным сервисом Arizona RP
   </footer>
@@ -748,503 +269,370 @@
 </div>
 
 <script>
-// ─── BOKEH GENERATOR ───
-(function() {
-  const bokeh = document.getElementById('bokeh');
-  const lights = [
-    { color: '79,142,247',  count: 5 },
-    { color: '162,89,247',  count: 4 },
-    { color: '247,89,89',   count: 3 },
-    { color: '89,247,200',  count: 3 },
-    { color: '247,190,89',  count: 3 },
-    { color: '89,147,247',  count: 4 },
-    { color: '180,89,247',  count: 3 },
-    { color: '89,200,247',  count: 3 },
-  ];
-
-  lights.forEach(({ color, count }) => {
-    for (let i = 0; i < count; i++) {
-      const el = document.createElement('div');
-      el.className = 'bokeh-light';
-      const size = 180 + Math.random() * 360;
-      const dur  = 10 + Math.random() * 18;
-      const tx   = (Math.random() - 0.5) * 160;
-      const ty   = (Math.random() - 0.5) * 160;
-      const sc   = 0.75 + Math.random() * 0.55;
-      const opMin = 0.03 + Math.random() * 0.04;
-      const opMax = 0.09 + Math.random() * 0.13;
-      // Multi-stop radial gradient for smooth bokeh look
-      el.style.cssText = `
-        width:${size}px;height:${size}px;
-        left:${Math.random()*110-5}%;
-        top:${Math.random()*110-5}%;
-        background: radial-gradient(circle,
-          rgba(${color},0.95) 0%,
-          rgba(${color},0.6)  25%,
-          rgba(${color},0.2)  55%,
-          rgba(${color},0.0)  75%);
-        --dur:${dur}s;
-        --tx:${tx}px;--ty:${ty}px;--sc:${sc};
-        --op-min:${opMin};--op-max:${opMax};
-        animation-delay:${-Math.random()*dur}s;
-      `;
+// ── BOKEH ──────────────────────────────────
+(function(){
+  const bokeh=document.getElementById('bokeh');
+  [{color:'79,142,247',n:5},{color:'162,89,247',n:4},{color:'247,89,89',n:3},
+   {color:'89,247,200',n:3},{color:'247,190,89',n:3},{color:'89,147,247',n:4},
+   {color:'180,89,247',n:2},{color:'89,200,247',n:2}].forEach(({color,n})=>{
+    for(let i=0;i<n;i++){
+      const el=document.createElement('div');el.className='bokeh-light';
+      const size=180+Math.random()*360,dur=10+Math.random()*18;
+      const tx=(Math.random()-.5)*160,ty=(Math.random()-.5)*160,sc=.75+Math.random()*.55;
+      const oMin=.03+Math.random()*.04,oMax=.09+Math.random()*.13;
+      el.style.cssText=`width:${size}px;height:${size}px;left:${Math.random()*110-5}%;top:${Math.random()*110-5}%;
+        background:radial-gradient(circle,rgba(${color},.95) 0%,rgba(${color},.6) 25%,rgba(${color},.2) 55%,rgba(${color},0) 75%);
+        --dur:${dur}s;--tx:${tx}px;--ty:${ty}px;--sc:${sc};--op-min:${oMin};--op-max:${oMax};
+        animation-delay:${-Math.random()*dur}s`;
       bokeh.appendChild(el);
     }
   });
 })();
 
-// ─── STATE ───
-const SERVERS = [
-  { id: 'vice-city',  label: '[0] Vice City' },
-  { id: 'phoenix',    label: '[1] Phoenix' },
-  { id: 'tucson',     label: '[2] Tucson' },
-  { id: 'scottdale',  label: '[3] Scottdale' },
-  { id: 'chandler',   label: '[4] Chandler' },
-  { id: 'brainburg',  label: '[5] Brainburg' },
-  { id: 'saintrose',  label: '[6] Saint Rose' },
-  { id: 'mesa',       label: '[7] Mesa' },
-  { id: 'red-rock',   label: '[8] Red Rock' },
-  { id: 'yuma',       label: '[9] Yuma' },
-  { id: 'surprise',   label: '[10] Surprise' },
-  { id: 'prescott',   label: '[11] Prescott' },
-  { id: 'glendale',   label: '[12] Glendale' },
-  { id: 'kingman',    label: '[13] Kingman' },
-  { id: 'winslow',    label: '[14] Winslow' },
-  { id: 'payson',     label: '[15] Payson' },
-  { id: 'gilbert',    label: '[16] Gilbert' },
-  { id: 'show-low',   label: '[17] Show-Low' },
-  { id: 'casa-grande',label: '[18] Casa Grande' },
-  { id: 'page',       label: '[19] Page' },
-  { id: 'sun-city',   label: '[20] Sun City' },
-  { id: 'queen-creek',label: '[21] Queen Creek' },
-  { id: 'sedona',     label: '[22] Sedona' },
-  { id: 'holiday',    label: '[23] Holiday' },
-  { id: 'wednesday',  label: '[24] Wednesday' },
-  { id: 'yava',       label: '[25] Yava' },
-  { id: 'faraway',    label: '[26] Faraway' },
-  { id: 'bumble-bee', label: '[27] Bumble Bee' },
-  { id: 'christmas',  label: '[28] Christmas' },
-  { id: 'mirage',     label: '[29] Mirage' },
-  { id: 'love',       label: '[30] Love' },
-  { id: 'drake',      label: '[31] Drake' },
-  { id: 'space',      label: '[32] Space' },
+// ── SERVERS ────────────────────────────────
+const SERVERS=[
+  {id:0,  slug:'vice-city',    label:'[0] Vice City'},
+  {id:1,  slug:'phoenix',      label:'[1] Phoenix'},
+  {id:2,  slug:'tucson',       label:'[2] Tucson'},
+  {id:3,  slug:'scottdale',    label:'[3] Scottdale'},
+  {id:4,  slug:'chandler',     label:'[4] Chandler'},
+  {id:5,  slug:'brainburg',    label:'[5] Brainburg'},
+  {id:6,  slug:'saintrose',    label:'[6] SaintRose'},
+  {id:7,  slug:'mesa',         label:'[7] Mesa'},
+  {id:8,  slug:'redrock',      label:'[8] Red Rock'},
+  {id:9,  slug:'yuma',         label:'[9] Yuma'},
+  {id:10, slug:'surprise',     label:'[10] Surprise'},
+  {id:11, slug:'prescott',     label:'[11] Prescott'},
+  {id:12, slug:'glendale',     label:'[12] Glendale'},
+  {id:13, slug:'kingman',      label:'[13] Kingman'},
+  {id:14, slug:'winslow',      label:'[14] Winslow'},
+  {id:15, slug:'payson',       label:'[15] Payson'},
+  {id:16, slug:'gilbert',      label:'[16] Gilbert'},
+  {id:17, slug:'showlow',      label:'[17] Show-Low'},
+  {id:18, slug:'casagrande',   label:'[18] CasaGrande'},
+  {id:19, slug:'page',         label:'[19] Page'},
+  {id:20, slug:'suncity',      label:'[20] Sun City'},
+  {id:21, slug:'queencreek',   label:'[21] Queen Creek'},
+  {id:22, slug:'sedona',       label:'[22] Sedona'},
+  {id:23, slug:'holiday',      label:'[23] Holiday'},
+  {id:24, slug:'wednesday',    label:'[24] Wednesday'},
+  {id:25, slug:'yava',         label:'[25] Yava'},
+  {id:26, slug:'faraway',      label:'[26] Faraway'},
+  {id:27, slug:'bumblebee',    label:'[27] Bumble Bee'},
+  {id:28, slug:'christmas',    label:'[28] Christmas'},
+  {id:29, slug:'mirage',       label:'[29] Mirage'},
+  {id:30, slug:'love',         label:'[30] Love'},
+  {id:31, slug:'drake',        label:'[31] Drake'},
+  {id:32, slug:'space',        label:'[32] Space'},
 ];
 
-let state = {
-  allItems: [],       // [{name, buyPrice, sellPrice, buyVol, sellVol, buyDate, sellDate, buyHistory, server}]
-  filtered: [],
-  currentServer: 'queen-creek',
-  sort: 'name',
-  search: '',
-  gridMode: 'grid',  // grid | list
-  dataSource: '—',
+// ── STATE ──────────────────────────────────
+const S={
+  srvId:21, lavkas:[], itemsData:{}, avgPrices:{},
+  mode:'lavkas', sortIdx:0
 };
+const SORTS=[
+  {k:'default',   l:'По умолчанию'},
+  {k:'sell-desc', l:'Продаёт ↓'},
+  {k:'sell-asc',  l:'Продаёт ↑'},
+  {k:'buy-desc',  l:'Покупает ↓'},
+  {k:'buy-asc',   l:'Покупает ↑'},
+];
 
-// ─── INIT ───
-document.addEventListener('DOMContentLoaded', () => {
-  buildServerChips();
+// ── INIT ───────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  buildChips();
   loadData();
-
-  document.getElementById('search').addEventListener('input', e => {
-    state.search = e.target.value.toLowerCase();
-    render();
+  const inp=document.getElementById('search');
+  inp.addEventListener('input',()=>{
+    const q=inp.value.trim();
+    if(q.length>1){ setMode('search'); doSearch(q); }
+    else setMode('lavkas');
   });
 });
 
-// ─── SERVER CHIPS ───
-function buildServerChips() {
-  const wrap = document.getElementById('server-chips');
-  wrap.innerHTML = '';
-  SERVERS.forEach(srv => {
-    const chip = document.createElement('button');
-    chip.className = 'server-chip' + (srv.id === state.currentServer ? ' active' : '');
-    chip.textContent = srv.label;
-    chip.onclick = () => {
-      state.currentServer = srv.id;
-      document.querySelectorAll('.server-chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      document.getElementById('stat-server').textContent = srv.label;
+// ── CHIPS ──────────────────────────────────
+function buildChips(){
+  const wrap=document.getElementById('server-chips');
+  SERVERS.forEach(srv=>{
+    const c=document.createElement('button');
+    c.className='srv-chip'+(srv.id===S.srvId?' active':'');
+    c.textContent=srv.label;
+    c.onclick=()=>{
+      S.srvId=srv.id;
+      document.querySelectorAll('.srv-chip').forEach(x=>x.classList.remove('active'));
+      c.classList.add('active');
       loadData();
     };
-    wrap.appendChild(chip);
+    wrap.appendChild(c);
   });
 }
 
-// ─── LOAD DATA ───
-async function loadData() {
-  setStatus('loading', 'Загрузка...');
-  showSkeletons();
-
-  const srv = state.currentServer;
-  const ghBuyUrl  = `https://raw.githubusercontent.com/FREYM1337/forumnick/main/avg_price/info_users_buy_${srv}.json`;
-  const ghSellUrl = `https://raw.githubusercontent.com/FREYM1337/forumnick/main/avg_price/info_users_sell_${srv}.json`;
-  const apiUrl    = `https://api.arz.market/api/getSelectedMarketplace`;
-
-  // Try API first, fallback to GitHub
-  let buyData = null, sellData = null, usedSource = '';
-
-  try {
-    // Try live API
-    const res = await fetchWithTimeout(apiUrl + `?server=${srv}`, 5000);
-    if (res.ok) {
-      const json = await res.json();
-      // Try to parse API format
-      const parsed = parseApiResponse(json, srv);
-      if (parsed && parsed.length > 0) {
-        state.allItems = parsed;
-        usedSource = 'api.arz.market';
-        setStatus('ok', `api.arz.market · ${srv}`);
-        document.getElementById('stat-source').textContent = 'api.arz.market';
-        updateStats(parsed, srv);
-        render();
-        return;
-      }
-    }
-  } catch(e) { /* fallback */ }
-
-  // Fallback: GitHub raw
-  try {
-    const [buyRes, sellRes] = await Promise.all([
-      fetchWithTimeout(ghBuyUrl, 8000),
-      fetchWithTimeout(ghSellUrl, 8000),
+// ── LOAD ───────────────────────────────────
+async function loadData(){
+  setStatus('loading','Загрузка...');
+  showSkel();
+  const srv=SERVERS.find(s=>s.id===S.srvId);
+  try{
+    const [lavRes,itmRes]=await Promise.all([
+      ft(`https://api.arz.market/api/getSelectedMarketplace/${S.srvId}`,8000),
+      ft(`https://server-api.arizona.games/client/json/table/get?project=arizona&server=0&key=inventory_items`,8000)
     ]);
-
-    if (buyRes.ok)  buyData  = await decodeCP1251(buyRes);
-    if (sellRes.ok) sellData = await decodeCP1251(sellRes);
-
-    if (buyData || sellData) {
-      const parsed = parseGithubData(buyData, sellData, srv);
-      state.allItems = parsed;
-      usedSource = 'GitHub (avg_price)';
-      setStatus('ok', `GitHub · ${srv}`);
-      document.getElementById('stat-source').textContent = 'GitHub avg_price';
-      updateStats(parsed, srv);
-      render();
-      return;
-    }
-  } catch(e) { /* error */ }
-
-  setStatus('error', 'Ошибка загрузки');
-  document.getElementById('grid').innerHTML = `
-    <div class="empty">
-      <div class="empty-icon">⚠️</div>
-      <div class="empty-text">Не удалось загрузить данные</div>
-      <div class="empty-sub">Проверьте подключение к интернету</div>
-    </div>`;
-}
-
-// ─── DECODE CP1251 JSON ───
-async function decodeCP1251(response) {
-  try {
-    const buf = await response.arrayBuffer();
-    const decoder = new TextDecoder('windows-1251');
-    const text = decoder.decode(buf);
-    return JSON.parse(text);
-  } catch(e) {
-    return null;
+    if(lavRes.ok){ const r=await lavRes.json(); S.lavkas=Array.isArray(r)?r:[]; }
+    if(itmRes.ok){ const r=await itmRes.json(); S.itemsData={}; if(Array.isArray(r)) r.forEach(v=>{S.itemsData[v.id]=v.name;}); }
+    loadAvg(srv?.slug);
+    updStats(srv);
+    renderLavkas();
+    setStatus('ok',`${srv?.label||S.srvId} · ${S.lavkas.length} лавок`);
+  }catch(e){
+    setStatus('error','Ошибка: '+e.message);
+    document.getElementById('lavka-grid').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Ошибка загрузки</div><div style="font-size:12px;margin-top:6px;color:var(--text-muted)">${e.message}</div></div>`;
   }
 }
 
-// ─── FETCH WITH TIMEOUT ───
-function fetchWithTimeout(url, ms) {
-  return Promise.race([
-    fetch(url),
-    new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))
-  ]);
+async function loadAvg(slug){
+  if(!slug)return;
+  const url=`https://raw.githubusercontent.com/FREYM1337/forumnick/main/avg_price/info_users_sell_${slug}.json`;
+  try{ const r=await ft(url,8000); if(r.ok) S.avgPrices=await cp1251(r); }catch(e){}
 }
 
-// ─── PARSE API RESPONSE ───
-function parseApiResponse(json, srv) {
-  // api.arz.market format — adapt if needed
-  if (Array.isArray(json)) {
-    return json.map(item => ({
-      name:       item.name || item.item || '—',
-      buyPrice:   item.buyPrice  || item.buy_price  || item.price || 0,
-      sellPrice:  item.sellPrice || item.sell_price || item.price || 0,
-      buyVol:     item.buyCount  || item.buy_count  || 0,
-      sellVol:    item.sellCount || item.sell_count || 0,
-      buyDate:    item.date || '—',
-      sellDate:   item.date || '—',
-      buyHistory:  [],
-      sellHistory: [],
-      server: srv,
-    }));
-  }
-  return null;
+function ft(url,ms){
+  return Promise.race([fetch(url),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))]);
+}
+async function cp1251(res){
+  const buf=await res.arrayBuffer();
+  try{ return JSON.parse(new TextDecoder('windows-1251').decode(buf)); }
+  catch(e){ return JSON.parse(new TextDecoder('utf-8').decode(buf)); }
 }
 
-// ─── PARSE GITHUB DATA ───
-function parseGithubData(buyData, sellData, srv) {
-  const items = {};
-
-  const processData = (data, type) => {
-    if (!data) return;
-    Object.entries(data).forEach(([name, val]) => {
-      if (!val || !val.list || !val.list.length) return;
-      if (!items[name]) items[name] = { name, server: srv };
-
-      // list entries: [date, count, total, count2, avgPrice, avgPrice2]
-      const history = val.list.slice(0, 30);
-      const latest  = val.list[0];
-      const avgPrice = latest[4] || 0;
-      const count    = latest[1] || 0;
-      const date     = latest[0] || '—';
-
-      if (type === 'buy') {
-        items[name].buyPrice   = avgPrice;
-        items[name].buyVol     = count;
-        items[name].buyDate    = date;
-        items[name].buyHistory = history;
-      } else {
-        items[name].sellPrice   = avgPrice;
-        items[name].sellVol     = count;
-        items[name].sellDate    = date;
-        items[name].sellHistory = history;
-      }
-    });
-  };
-
-  processData(buyData,  'buy');
-  processData(sellData, 'sell');
-
-  return Object.values(items).filter(i => i.buyPrice || i.sellPrice);
+// ── STATS ──────────────────────────────────
+function updStats(srv){
+  let ts=0,tb=0;
+  S.lavkas.forEach(l=>{ ts+=(l.items_sell||[]).length; tb+=(l.items_buy||[]).length; });
+  document.getElementById('s-lavkas').textContent=S.lavkas.length;
+  document.getElementById('s-sell').textContent=ts;
+  document.getElementById('s-buy').textContent=tb;
+  document.getElementById('s-server').textContent=srv?.label||'—';
+  document.getElementById('s-updated').textContent=new Date().toLocaleTimeString('ru-RU');
 }
 
-// ─── UPDATE STATS ───
-function updateStats(items, srv) {
-  document.getElementById('stat-total').textContent = items.length;
-  const label = SERVERS.find(s => s.id === srv)?.label || srv;
-  document.getElementById('stat-server').textContent = label;
-  document.getElementById('stat-updated').textContent = new Date().toLocaleTimeString('ru-RU');
+// ── MODE ───────────────────────────────────
+function setMode(m){
+  S.mode=m;
+  document.getElementById('tab-lavkas').classList.toggle('active',m==='lavkas');
+  document.getElementById('tab-search').classList.toggle('active',m==='search');
+  document.getElementById('lavka-grid').style.display=m==='lavkas'?'':'none';
+  const sv=document.getElementById('search-view');
+  sv.classList.toggle('visible',m==='search');
+  if(m==='search') sv.style.display='flex'; else sv.style.display='none';
 }
 
-// ─── SORT ───
-function setSort(sort, el) {
-  state.sort = sort;
-  document.querySelectorAll('.sort-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  render();
+// ── SORT ───────────────────────────────────
+function cycleSort(){
+  S.sortIdx=(S.sortIdx+1)%SORTS.length;
+  document.getElementById('sort-label').textContent=SORTS[S.sortIdx].l;
+  if(S.mode==='lavkas') renderLavkas();
+  else doSearch(document.getElementById('search').value.trim());
 }
 
-function sortItems(items) {
-  const arr = [...items];
-  switch (state.sort) {
-    case 'name':       return arr.sort((a,b) => a.name.localeCompare(b.name, 'ru'));
-    case 'price-asc':  return arr.sort((a,b) => (a.buyPrice||a.sellPrice||0) - (b.buyPrice||b.sellPrice||0));
-    case 'price-desc': return arr.sort((a,b) => (b.buyPrice||b.sellPrice||0) - (a.buyPrice||a.sellPrice||0));
-    case 'volume':     return arr.sort((a,b) => (b.buyVol||0) - (a.buyVol||0));
-    case 'date':       return arr.sort((a,b) => (b.buyDate||'').localeCompare(a.buyDate||''));
-  }
-  return arr;
-}
+// ── RENDER LAVKAS ──────────────────────────
+function renderLavkas(){
+  const grid=document.getElementById('lavka-grid');
+  let lv=[...S.lavkas];
+  const k=SORTS[S.sortIdx].k;
+  if(k==='sell-asc')  lv.sort((a,b)=>(a.items_sell?.length||0)-(b.items_sell?.length||0));
+  if(k==='sell-desc') lv.sort((a,b)=>(b.items_sell?.length||0)-(a.items_sell?.length||0));
+  if(k==='buy-asc')   lv.sort((a,b)=>(a.items_buy?.length||0)-(b.items_buy?.length||0));
+  if(k==='buy-desc')  lv.sort((a,b)=>(b.items_buy?.length||0)-(a.items_buy?.length||0));
 
-// ─── TOGGLE MODE ───
-function toggleMode() {
-  state.gridMode = state.gridMode === 'grid' ? 'list' : 'grid';
-  const grid = document.getElementById('grid');
-  if (state.gridMode === 'list') {
-    grid.style.gridTemplateColumns = '1fr';
-    document.getElementById('btn-mode').classList.add('active');
-  } else {
-    grid.style.gridTemplateColumns = '';
-    document.getElementById('btn-mode').classList.remove('active');
-  }
-}
-
-// ─── RENDER ───
-function render() {
-  const query = state.search;
-  let filtered = state.allItems.filter(item =>
-    !query || item.name.toLowerCase().includes(query)
-  );
-  filtered = sortItems(filtered);
-  state.filtered = filtered;
-
-  const grid = document.getElementById('grid');
-
-  if (!filtered.length) {
-    grid.innerHTML = `
-      <div class="empty">
-        <div class="empty-icon">🔍</div>
-        <div class="empty-text">Ничего не найдено</div>
-        <div class="empty-sub">Попробуйте другой запрос</div>
-      </div>`;
-    return;
-  }
-
-  grid.innerHTML = '';
-  filtered.forEach((item, idx) => {
-    const card = createCard(item, idx);
+  if(!lv.length){ grid.innerHTML=`<div class="empty"><div class="empty-icon">🏪</div><div class="empty-text">Нет лавок на этом сервере</div></div>`; return; }
+  grid.innerHTML='';
+  lv.forEach((lk,i)=>{
+    const si=(lk.items_sell||[]),bi=(lk.items_buy||[]);
+    const prev=[...si.slice(0,3),...bi.slice(0,1)].map(id=>{
+      const n=typeof id==='string'?parseInt(id):id;
+      return S.itemsData[n]||null;
+    }).filter(Boolean);
+    const srvL=SERVERS.find(s=>s.id===lk.serverId)?.label||`srv${lk.serverId}`;
+    const card=document.createElement('div');
+    card.className='lavka-card';
+    card.style.animationDelay=Math.min(i*.025,.4)+'s';
+    card.innerHTML=`
+      <div class="lc-header">
+        <div><div class="lc-owner">${esc(lk.username||'—')}</div><div class="lc-uid">Лавка #${lk.LavkaUid}</div></div>
+        <div class="lc-srv-badge">${esc(srvL)}</div>
+      </div>
+      <div class="lc-counts">
+        <div class="lc-count-box sell"><div class="lc-count-label">Продаёт</div><div class="lc-count-val">${si.length}</div></div>
+        <div class="lc-count-box buy"><div class="lc-count-label">Покупает</div><div class="lc-count-val">${bi.length}</div></div>
+      </div>
+      ${prev.length?`<div class="lc-items-preview">${prev.map(n=>`<span class="item-tag">${esc(n)}</span>`).join('')}${(si.length+bi.length)>4?`<span class="item-tag">+${si.length+bi.length-4}</span>`:''}</div>`:''}
+    `;
+    card.onclick=()=>openModal(lk);
     grid.appendChild(card);
   });
 }
 
-// ─── CREATE CARD ───
-function createCard(item, idx) {
-  const div = document.createElement('div');
-  div.className = 'item-card';
-  div.style.animationDelay = Math.min(idx * 0.03, 0.5) + 's';
-
-  const hasBuy  = item.buyPrice  > 0;
-  const hasSell = item.sellPrice > 0;
-
-  const trend = getTrend(item.buyHistory || item.sellHistory || []);
-  const trendHTML = trend ? `<span class="trend ${trend.dir}">${trend.dir === 'up' ? '▲' : trend.dir === 'down' ? '▼' : '—'} ${trend.pct}%</span>` : '';
-
-  let pricesHTML = '';
-  if (hasBuy && hasSell) {
-    pricesHTML = `
-      <div class="item-prices">
-        <div class="price-box buy">
-          <div class="price-box-label">Покупка</div>
-          <div class="price-box-value">${fmt(item.buyPrice)}</div>
-          <div class="price-box-vol">× ${fmtVol(item.buyVol)}</div>
-        </div>
-        <div class="price-box sell">
-          <div class="price-box-label">Продажа</div>
-          <div class="price-box-value">${fmt(item.sellPrice)}</div>
-          <div class="price-box-vol">× ${fmtVol(item.sellVol)}</div>
-        </div>
-      </div>`;
-  } else {
-    const price = item.buyPrice || item.sellPrice;
-    const vol   = item.buyVol   || item.sellVol;
-    const label = hasBuy ? 'Покупка' : 'Продажа';
-    pricesHTML = `
-      <div class="item-prices">
-        <div class="price-single">
-          <div>
-            <div class="price-box-label">${label}</div>
-            <div class="price-box-value">${fmt(price)}</div>
-          </div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted)">× ${fmtVol(vol)}</div>
-        </div>
-      </div>`;
-  }
-
-  div.innerHTML = `
-    <div class="item-card-header">
-      <div>
-        <div class="item-name">${esc(item.name)}</div>
-        <div class="item-date">${item.buyDate || item.sellDate || '—'}</div>
-        ${trendHTML}
-      </div>
-      <div class="item-server-badge">${item.server || ''}</div>
-    </div>
-    ${pricesHTML}
-  `;
-
-  div.onclick = () => openModal(item);
-  return div;
-}
-
-// ─── TREND ───
-function getTrend(history) {
-  if (!history || history.length < 2) return null;
-  const latest = history[0][4] || 0;
-  const prev   = history[1][4] || 0;
-  if (!prev) return null;
-  const pct = (((latest - prev) / prev) * 100).toFixed(1);
-  const dir = pct > 0.5 ? 'up' : pct < -0.5 ? 'down' : 'flat';
-  return { pct: Math.abs(pct), dir };
-}
-
-// ─── MODAL ───
-function openModal(item) {
-  const history = (item.buyHistory || []).slice(0, 14);
-  const histHTML = history.length ? history.map(h => `
-    <div class="history-row">
-      <span class="h-date">${h[0]}</span>
-      <span class="h-price" style="color:var(--green)">${fmt(h[4])}</span>
-      <span class="h-vol">${fmtVol(h[1])} шт</span>
-    </div>`).join('') : '<div style="color:var(--text-muted);font-size:13px">Нет данных</div>';
-
-  const sellHistory = (item.sellHistory || []).slice(0, 14);
-  const sellHistHTML = sellHistory.length ? sellHistory.map(h => `
-    <div class="history-row">
-      <span class="h-date">${h[0]}</span>
-      <span class="h-price" style="color:var(--red)">${fmt(h[4])}</span>
-      <span class="h-vol">${fmtVol(h[1])} шт</span>
-    </div>`).join('') : '';
-
-  document.getElementById('modal-content').innerHTML = `
-    <div class="modal-title">${esc(item.name)}</div>
-    <div class="modal-subtitle">Сервер: ${item.server || '—'} · Последнее обновление: ${item.buyDate || item.sellDate || '—'}</div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
-      ${item.buyPrice ? `
-      <div class="price-box buy" style="padding:14px">
-        <div class="price-box-label">Покупка</div>
-        <div class="price-box-value" style="font-size:24px">${fmt(item.buyPrice)}</div>
-        <div class="price-box-vol">Объём: ${fmtVol(item.buyVol)} шт</div>
-      </div>` : ''}
-      ${item.sellPrice ? `
-      <div class="price-box sell" style="padding:14px">
-        <div class="price-box-label">Продажа</div>
-        <div class="price-box-value" style="font-size:24px">${fmt(item.sellPrice)}</div>
-        <div class="price-box-vol">Объём: ${fmtVol(item.sellVol)} шт</div>
-      </div>` : ''}
-    </div>
-
-    ${history.length ? `
-    <div class="modal-section">
-      <div class="modal-section-title">История цен покупки</div>
-      <div class="history-list">${histHTML}</div>
-    </div>` : ''}
-
-    ${sellHistHTML ? `
-    <div class="modal-section">
-      <div class="modal-section-title">История цен продажи</div>
-      <div class="history-list">${sellHistHTML}</div>
-    </div>` : ''}
-  `;
-
+// ── MODAL ──────────────────────────────────
+function openModal(lk){
+  const si=lk.items_sell||[],sp=lk.price_sell||[],sc=lk.count_sell||[];
+  const bi=lk.items_buy||[], bp=lk.price_buy||[], bc=lk.count_buy||[];
+  const cur=lk.serverId===0?'VC$':'SA$';
+  const rows=(items,prices,counts,type)=>items.map((id,i)=>{
+    const n=typeof id==='string'?parseInt(id):id;
+    const ench=typeof id==='string'?(id.match(/\((.+)\)/)?.[1]||''):'';
+    const name=S.itemsData[n]||`#${n}`;
+    return `<div class="modal-item-row">
+      <span class="mir-name">${esc(name)}${ench?` <span style="color:var(--text-muted);font-size:10px">(${esc(ench)})</span>`:''}</span>
+      <span class="mir-count">${counts[i]||0}шт</span>
+      <span class="mir-price ${type}">${fmt(prices[i]||0)} ${cur}</span>
+    </div>`;
+  }).join('');
+  const srvL=SERVERS.find(s=>s.id===lk.serverId)?.label||`srv${lk.serverId}`;
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-title">Лавка #${lk.LavkaUid}</div>
+    <div class="modal-sub">Владелец: ${esc(lk.username||'—')} · ${esc(srvL)}</div>
+    <div class="modal-cols">
+      <div><div class="modal-col-title sell">Продаёт · ${si.length}</div>${rows(si,sp,sc,'sell')||'<div style="color:var(--text-muted);font-size:12px;padding:8px">Пусто</div>'}</div>
+      <div><div class="modal-col-title buy">Покупает · ${bi.length}</div>${rows(bi,bp,bc,'buy')||'<div style="color:var(--text-muted);font-size:12px;padding:8px">Пусто</div>'}</div>
+    </div>`;
   document.getElementById('modal-overlay').classList.add('open');
 }
-
-function closeModal(e) {
-  if (!e || e.target === document.getElementById('modal-overlay') || e.currentTarget?.className === 'modal-close') {
+function closeModal(e){
+  if(!e||e.target===document.getElementById('modal-overlay')||e.currentTarget?.className==='modal-close')
     document.getElementById('modal-overlay').classList.remove('open');
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.getElementById('modal-overlay').classList.remove('open'); });
+
+// ── SEARCH ─────────────────────────────────
+function doSearch(q){
+  if(!q){ setMode('lavkas'); return; }
+  const ql=q.toLowerCase();
+  const matchIds=new Set();
+  Object.entries(S.itemsData).forEach(([id,name])=>{ if(name&&name.toLowerCase().includes(ql)) matchIds.add(parseInt(id)); });
+
+  const sell=[],buy=[];
+  S.lavkas.forEach(lk=>{
+    (lk.items_sell||[]).forEach((id,i)=>{
+      const n=typeof id==='string'?parseInt(id):id;
+      if(matchIds.has(n)) sell.push({name:S.itemsData[n]||`#${n}`,price:lk.price_sell[i]||0,count:lk.count_sell[i]||0,uid:lk.LavkaUid,owner:lk.username,srvId:lk.serverId,lk});
+    });
+    (lk.items_buy||[]).forEach((id,i)=>{
+      const n=typeof id==='string'?parseInt(id):id;
+      if(matchIds.has(n)) buy.push({name:S.itemsData[n]||`#${n}`,price:lk.price_buy[i]||0,count:lk.count_buy[i]||0,uid:lk.LavkaUid,owner:lk.username,srvId:lk.serverId,lk});
+    });
+  });
+
+  const k=SORTS[S.sortIdx].k;
+  const sortFn = k.includes('desc')?(a,b)=>b.price-a.price:k.includes('asc')?(a,b)=>a.price-b.price:null;
+  if(sortFn){ sell.sort(sortFn); buy.sort(sortFn); }
+
+  // Render
+  document.getElementById('sell-col-title').textContent=`ПРОДАЮТ · ${sell.length}`;
+  document.getElementById('buy-col-title').textContent=`ПОКУПАЮТ · ${buy.length}`;
+  document.getElementById('sell-results').innerHTML=sell.length?sell.map((it,i)=>resHTML(it,'sell',i)).join(''):`<div style="color:var(--text-muted);font-size:12px;padding:12px 4px">Не найдено</div>`;
+  document.getElementById('buy-results').innerHTML=buy.length?buy.map((it,i)=>resHTML(it,'buy',i)).join(''):`<div style="color:var(--text-muted);font-size:12px;padding:12px 4px">Не найдено</div>`;
+
+  // Chart for first matched item
+  const firstName=matchIds.size>0?S.itemsData[[...matchIds][0]]:null;
+  if(firstName) drawChart(firstName); else document.getElementById('chart-panel').style.display='none';
+}
+
+function resHTML(it,type,idx){
+  const srvL=SERVERS.find(s=>s.id===it.srvId)?.label||`srv${it.srvId}`;
+  const cur=it.srvId===0?'VC$':'SA$';
+  // Serialize lavka data for modal open — store index
+  const lavkaIdx=S.lavkas.indexOf(it.lk);
+  return `<div class="search-result-item" style="animation-delay:${Math.min(idx*.02,.35)}s">
+    <div class="sri-top">
+      <div class="sri-name">${esc(it.name)}</div>
+      <div class="sri-price ${type}">${fmt(it.price)} ${cur}</div>
+    </div>
+    <div class="sri-meta">
+      <span class="sri-tag uid" onclick="openModal(S.lavkas[${lavkaIdx}])">Лавка #${it.uid}</span>
+      <span class="sri-tag">${esc(it.owner||'—')}</span>
+      <span class="sri-tag">${it.count} шт</span>
+      <span class="sri-tag">${esc(srvL)}</span>
+    </div>
+  </div>`;
+}
+
+// ── CHART ──────────────────────────────────
+function drawChart(itemName){
+  const panel=document.getElementById('chart-panel');
+  const data=S.avgPrices?.[itemName];
+  if(!data||!data.list?.length){ panel.style.display='none'; return; }
+  panel.style.display='block';
+  document.getElementById('chart-item-name').textContent=itemName;
+
+  const pts=data.list.slice(0,30).reverse();
+  const prices=pts.map(p=>p[4]||0);
+  const dates=pts.map(p=>p[0]);
+  const vols=pts.map(p=>p[1]||0);
+
+  const mn=Math.min(...prices), mx=Math.max(...prices);
+  const tot=vols.reduce((a,b)=>a+b,0);
+  document.getElementById('chart-avg').textContent=fmt(prices[prices.length-1]);
+  document.getElementById('chart-min').textContent=fmt(mn);
+  document.getElementById('chart-max').textContent=fmt(mx);
+  document.getElementById('chart-vol').textContent=fmtN(tot);
+
+  const canvas=document.getElementById('price-chart');
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.parentElement.clientWidth-40, H=200;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
+
+  const pad={t:16,r:16,b:36,l:64};
+  const cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
+  const rng=mx-mn||1;
+  const xS=cW/(prices.length-1||1);
+  const tx=i=>pad.l+i*xS;
+  const ty=v=>pad.t+cH-((v-mn)/rng)*cH;
+
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=1;
+  for(let g=0;g<=4;g++){
+    const y=pad.t+(cH/4)*g;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cW,y); ctx.stroke();
+    ctx.fillStyle='rgba(232,234,246,.25)'; ctx.font=`10px 'JetBrains Mono',monospace`; ctx.textAlign='right';
+    ctx.fillText(fmtN(mx-(rng/4)*g),pad.l-6,y+4);
   }
+
+  // Area fill
+  const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+cH);
+  grad.addColorStop(0,'rgba(79,142,247,.3)'); grad.addColorStop(1,'rgba(79,142,247,0)');
+  ctx.beginPath(); ctx.moveTo(tx(0),ty(prices[0]));
+  prices.forEach((p,i)=>{ if(i>0) ctx.lineTo(tx(i),ty(p)); });
+  ctx.lineTo(tx(prices.length-1),pad.t+cH); ctx.lineTo(tx(0),pad.t+cH);
+  ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+
+  // Line
+  ctx.beginPath(); ctx.strokeStyle='#4f8ef7'; ctx.lineWidth=2.5; ctx.lineJoin='round';
+  prices.forEach((p,i)=>{ i===0?ctx.moveTo(tx(i),ty(p)):ctx.lineTo(tx(i),ty(p)); });
+  ctx.stroke();
+
+  // Dots
+  [[0,'#4f8ef7'],[prices.length-1,'#a259f7']].forEach(([i,col])=>{
+    ctx.beginPath(); ctx.arc(tx(i),ty(prices[i]),4.5,0,Math.PI*2);
+    ctx.fillStyle=col; ctx.fill();
+    ctx.beginPath(); ctx.arc(tx(i),ty(prices[i]),2,0,Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.fill();
+  });
+
+  // Date labels
+  ctx.fillStyle='rgba(232,234,246,.3)'; ctx.font=`9px 'JetBrains Mono',monospace`; ctx.textAlign='center';
+  const step=Math.max(1,Math.floor(prices.length/5));
+  dates.forEach((d,i)=>{ if(i%step===0||i===dates.length-1) ctx.fillText(d.slice(5),tx(i),H-pad.b+16); });
 }
 
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeModal({ target: document.getElementById('modal-overlay') });
-});
-
-// ─── HELPERS ───
-function fmt(n) {
-  if (!n) return '—';
-  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
-  if (n >= 1000)    return (n/1000).toFixed(n >= 10000 ? 0 : 1) + 'K';
-  return n.toLocaleString('ru-RU');
-}
-
-function fmtVol(n) {
-  if (!n) return '0';
-  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
-  if (n >= 1000)    return (n/1000).toFixed(0) + 'K';
-  return n.toLocaleString('ru-RU');
-}
-
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function setStatus(type, text) {
-  const dot  = document.getElementById('status-dot');
-  const span = document.getElementById('status-text');
-  dot.className  = 'status-dot ' + (type === 'ok' ? '' : type);
-  span.textContent = text;
-}
-
-function showSkeletons() {
-  const grid = document.getElementById('grid');
-  grid.style.gridTemplateColumns = '';
-  grid.innerHTML = Array(12).fill(0).map(() =>
-    `<div class="skeleton skel-card"></div>`
-  ).join('');
-}
+// ── HELPERS ────────────────────────────────
+function fmt(n){ if(!n&&n!==0)return'—'; if(n>=1e6)return(n/1e6).toFixed(2)+'M'; if(n>=1000)return(n/1000).toFixed(n>=1e4?0:1)+'K'; return n.toLocaleString('ru-RU'); }
+function fmtN(n){ if(n>=1e6)return(n/1e6).toFixed(1)+'M'; if(n>=1000)return Math.round(n/1000)+'K'; return Math.round(n).toString(); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function setStatus(t,txt){ document.getElementById('status-dot').className='status-dot '+(t==='ok'?'':t); document.getElementById('status-text').textContent=txt; }
+function showSkel(){ document.getElementById('lavka-grid').innerHTML=Array(12).fill(0).map(()=>`<div class="skeleton skel-card"></div>`).join(''); }
 </script>
 </body>
 </html>
