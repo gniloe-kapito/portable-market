@@ -48,14 +48,17 @@
   .bokeh-light {
     position: absolute;
     border-radius: 50%;
-    filter: blur(80px);
+    filter: blur(110px);
     opacity: 0;
-    animation: bokehFloat var(--dur) ease-in-out infinite alternate;
+    animation: bokehFloat var(--dur) cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
+    will-change: transform, opacity;
   }
 
   @keyframes bokehFloat {
-    0%   { opacity: var(--op-min); transform: translate(0, 0) scale(1); }
-    50%  { opacity: var(--op-max); }
+    0%   { opacity: var(--op-min); transform: translate(0px, 0px) scale(1); }
+    20%  { opacity: calc(var(--op-min) * 1.5); }
+    50%  { opacity: var(--op-max); transform: translate(calc(var(--tx) * .55), calc(var(--ty) * .6)) scale(calc(1 + (var(--sc) - 1) * .55)); }
+    80%  { opacity: calc(var(--op-max) * .7); }
     100% { opacity: var(--op-min); transform: translate(var(--tx), var(--ty)) scale(var(--sc)); }
   }
 
@@ -748,33 +751,46 @@
 // ─── BOKEH GENERATOR ───
 (function() {
   const bokeh = document.getElementById('bokeh');
-  const colors = [
-    'rgba(79,142,247,', 'rgba(162,89,247,', 'rgba(247,89,89,',
-    'rgba(89,247,200,', 'rgba(247,200,89,', 'rgba(89,147,247,'
+  const lights = [
+    { color: '79,142,247',  count: 5 },
+    { color: '162,89,247',  count: 4 },
+    { color: '247,89,89',   count: 3 },
+    { color: '89,247,200',  count: 3 },
+    { color: '247,190,89',  count: 3 },
+    { color: '89,147,247',  count: 4 },
+    { color: '180,89,247',  count: 3 },
+    { color: '89,200,247',  count: 3 },
   ];
-  for (let i = 0; i < 28; i++) {
-    const el = document.createElement('div');
-    el.className = 'bokeh-light';
-    const size = 120 + Math.random() * 300;
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const dur = 6 + Math.random() * 12;
-    const tx = (Math.random() - 0.5) * 120;
-    const ty = (Math.random() - 0.5) * 120;
-    const sc = 0.8 + Math.random() * 0.5;
-    const opMin = 0.04 + Math.random() * 0.06;
-    const opMax = 0.1 + Math.random() * 0.18;
-    el.style.cssText = `
-      width: ${size}px; height: ${size}px;
-      left: ${Math.random() * 110 - 5}%;
-      top: ${Math.random() * 110 - 5}%;
-      background: radial-gradient(circle, ${color}0.9) 0%, ${color}0) 70%);
-      --dur: ${dur}s;
-      --tx: ${tx}px; --ty: ${ty}px; --sc: ${sc};
-      --op-min: ${opMin}; --op-max: ${opMax};
-      animation-delay: ${-Math.random() * dur}s;
-    `;
-    bokeh.appendChild(el);
-  }
+
+  lights.forEach(({ color, count }) => {
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('div');
+      el.className = 'bokeh-light';
+      const size = 180 + Math.random() * 360;
+      const dur  = 10 + Math.random() * 18;
+      const tx   = (Math.random() - 0.5) * 160;
+      const ty   = (Math.random() - 0.5) * 160;
+      const sc   = 0.75 + Math.random() * 0.55;
+      const opMin = 0.03 + Math.random() * 0.04;
+      const opMax = 0.09 + Math.random() * 0.13;
+      // Multi-stop radial gradient for smooth bokeh look
+      el.style.cssText = `
+        width:${size}px;height:${size}px;
+        left:${Math.random()*110-5}%;
+        top:${Math.random()*110-5}%;
+        background: radial-gradient(circle,
+          rgba(${color},0.95) 0%,
+          rgba(${color},0.6)  25%,
+          rgba(${color},0.2)  55%,
+          rgba(${color},0.0)  75%);
+        --dur:${dur}s;
+        --tx:${tx}px;--ty:${ty}px;--sc:${sc};
+        --op-min:${opMin};--op-max:${opMax};
+        animation-delay:${-Math.random()*dur}s;
+      `;
+      bokeh.appendChild(el);
+    }
+  });
 })();
 
 // ─── STATE ───
@@ -786,7 +802,7 @@ const SERVERS = [
   { id: 'brainburg',  label: '[5] Brainburg' },
   { id: 'saintrose',  label: '[6] Saint Rose' },
   { id: 'mesa',       label: '[7] Mesa' },
-  { id: 'redrock',    label: '[8] Red Rock' },
+  { id: 'red-rock',   label: '[8] Red Rock' },
   { id: 'yuma',       label: '[9] Yuma' },
   { id: 'surprise',   label: '[10] Surprise' },
   { id: 'prescott',   label: '[11] Prescott' },
@@ -796,16 +812,16 @@ const SERVERS = [
   { id: 'payson',     label: '[15] Payson' },
   { id: 'gilbert',    label: '[16] Gilbert' },
   { id: 'show-low',   label: '[17] Show-Low' },
-  { id: 'casagrande', label: '[18] Casa Grande' },
+  { id: 'casa-grande',label: '[18] Casa Grande' },
   { id: 'page',       label: '[19] Page' },
-  { id: 'suncity',    label: '[20] Sun City' },
-  { id: 'queencreek', label: '[21] Queen Creek' },
+  { id: 'sun-city',   label: '[20] Sun City' },
+  { id: 'queen-creek',label: '[21] Queen Creek' },
   { id: 'sedona',     label: '[22] Sedona' },
   { id: 'holiday',    label: '[23] Holiday' },
   { id: 'wednesday',  label: '[24] Wednesday' },
   { id: 'yava',       label: '[25] Yava' },
   { id: 'faraway',    label: '[26] Faraway' },
-  { id: 'bumblebee',  label: '[27] Bumble Bee' },
+  { id: 'bumble-bee', label: '[27] Bumble Bee' },
   { id: 'christmas',  label: '[28] Christmas' },
   { id: 'mirage',     label: '[29] Mirage' },
   { id: 'love',       label: '[30] Love' },
@@ -892,8 +908,8 @@ async function loadData() {
       fetchWithTimeout(ghSellUrl, 8000),
     ]);
 
-    if (buyRes.ok)  buyData  = await buyRes.json();
-    if (sellRes.ok) sellData = await sellRes.json();
+    if (buyRes.ok)  buyData  = await decodeCP1251(buyRes);
+    if (sellRes.ok) sellData = await decodeCP1251(sellRes);
 
     if (buyData || sellData) {
       const parsed = parseGithubData(buyData, sellData, srv);
@@ -914,6 +930,18 @@ async function loadData() {
       <div class="empty-text">Не удалось загрузить данные</div>
       <div class="empty-sub">Проверьте подключение к интернету</div>
     </div>`;
+}
+
+// ─── DECODE CP1251 JSON ───
+async function decodeCP1251(response) {
+  try {
+    const buf = await response.arrayBuffer();
+    const decoder = new TextDecoder('windows-1251');
+    const text = decoder.decode(buf);
+    return JSON.parse(text);
+  } catch(e) {
+    return null;
+  }
 }
 
 // ─── FETCH WITH TIMEOUT ───
