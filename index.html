@@ -375,7 +375,7 @@ const WORKER='https://portable-market.danvox123hyu.workers.dev';
 
 // ── SERVERS ────────────────────────────────
 const SERVERS=[
-  {id:0,  slug:'vice-city',    label:'[0] Vice City'},
+  {id:0,  slug:'vc',           label:'[0] Vice City'},
   {id:1,  slug:'phoenix',      label:'[1] Phoenix'},
   {id:2,  slug:'tucson',       label:'[2] Tucson'},
   {id:3,  slug:'scottdale',    label:'[3] Scottdale'},
@@ -392,7 +392,7 @@ const SERVERS=[
   {id:14, slug:'winslow',      label:'[14] Winslow'},
   {id:15, slug:'payson',       label:'[15] Payson'},
   {id:16, slug:'gilbert',      label:'[16] Gilbert'},
-  {id:17, slug:'showlow',      label:'[17] Show-Low'},
+  {id:17, slug:'showlow',      label:'[17] Show Low'},
   {id:18, slug:'casagrande',   label:'[18] CasaGrande'},
   {id:19, slug:'page',         label:'[19] Page'},
   {id:20, slug:'suncity',      label:'[20] Sun City'},
@@ -412,7 +412,7 @@ const SERVERS=[
 
 // ── STATE ──────────────────────────────────
 const S={
-  srvId:21, lavkas:[], itemsData:{}, avgPrices:{},
+  srvId:21, lavkas:[], itemsData:{}, avgPrices:{}, avgPricesNorm:{},
   mode:'lavkas', sortIdx:0
 };
 const SORTS=[
@@ -498,7 +498,33 @@ async function loadData(){
 async function loadAvg(slug){
   if(!slug)return;
   const url=`${WORKER}/api/avg?server=${slug}&type=sell`;
-  try{ const r=await ft(url,8000); if(r.ok) S.avgPrices=await cp1251(r); }catch(e){}
+  try{
+    const r=await ft(url,8000);
+    if(r.ok){
+      S.avgPrices=await cp1251(r);
+      // Build normalised lookup: lower+trim → original key
+      S.avgPricesNorm={};
+      Object.keys(S.avgPrices).forEach(k=>{
+        S.avgPricesNorm[k.toLowerCase().trim()]=k;
+      });
+    }
+  }catch(e){ console.warn('loadAvg error',e); }
+}
+
+// Lookup avg price data by item name (fuzzy: exact → lower → partial)
+function getAvgData(itemName){
+  if(!S.avgPrices) return null;
+  // 1. Exact match
+  if(S.avgPrices[itemName]) return S.avgPrices[itemName];
+  // 2. Lowercase match
+  const norm=itemName.toLowerCase().trim();
+  const key=S.avgPricesNorm?.[norm];
+  if(key) return S.avgPrices[key];
+  // 3. Partial: find first key that includes query or vice versa
+  const found=Object.keys(S.avgPrices).find(k=>
+    k.toLowerCase().includes(norm)||norm.includes(k.toLowerCase())
+  );
+  return found?S.avgPrices[found]:null;
 }
 
 function ft(url,ms){
@@ -717,7 +743,7 @@ function ownerResHTML(lk,idx){
 // ── CHART ──────────────────────────────────
 function drawChart(itemName){
   const panel=document.getElementById('chart-panel');
-  const data=S.avgPrices?.[itemName];
+  const data=getAvgData(itemName);
   if(!data||!data.list?.length){ panel.style.display='none'; return; }
   panel.style.display='block';
   document.getElementById('chart-item-name').textContent=itemName;
@@ -792,7 +818,7 @@ function openPriceModal(itemName){
   document.getElementById('pm-title').textContent=itemName;
   overlay.classList.add('open');
 
-  const data=S.avgPrices?.[itemName];
+  const data=getAvgData(itemName);
   if(!data||!data.list?.length){
     noData.style.display='block';
     canvas.style.display='none';
