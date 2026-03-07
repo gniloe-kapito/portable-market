@@ -37,7 +37,7 @@ body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-he
 
 /* BOKEH */
 #bokeh{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-.bokeh-light{position:absolute;border-radius:50%;filter:blur(110px);opacity:0;animation:bokehFloat var(--dur) cubic-bezier(.37,0,.63,1) infinite alternate;will-change:transform,opacity}
+.bokeh-light{position:absolute;border-radius:50%;opacity:0;animation:bokehFloat var(--dur) cubic-bezier(.37,0,.63,1) infinite alternate;will-change:transform,opacity}
 @keyframes bokehFloat{
   0%{opacity:var(--op-min);transform:translate(0,0) scale(1)}
   50%{opacity:var(--op-max);transform:translate(calc(var(--tx)*.55),calc(var(--ty)*.6)) scale(calc(1+(var(--sc)-1)*.55))}
@@ -500,7 +500,7 @@ footer a{color:var(--accent);text-decoration:none}
       const tx=(Math.random()-.5)*160,ty=(Math.random()-.5)*160,sc=.75+Math.random()*.55;
       const om=.03+Math.random()*.04,ox=.09+Math.random()*.13;
       el.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*110-5}%;top:${Math.random()*110-5}%;
-        background:radial-gradient(circle,rgba(${c},.95) 0%,rgba(${c},.6) 25%,rgba(${c},.2) 55%,rgba(${c},0) 75%);
+        background:radial-gradient(circle,rgba(${c},.75) 0%,rgba(${c},.4) 30%,rgba(${c},.12) 60%,rgba(${c},0) 75%);
         --dur:${dur}s;--tx:${tx}px;--ty:${ty}px;--sc:${sc};--op-min:${om};--op-max:${ox};
         animation-delay:${-Math.random()*dur}s`;
       b.appendChild(el);
