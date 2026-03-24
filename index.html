@@ -166,6 +166,7 @@ canvas#price-chart{width:100%;display:block;cursor:crosshair}
 .sri-name-btn:hover{color:var(--accent)}
 .sri-name-btn::after{content:' 📈';font-size:11px;opacity:.4}
 .sri-name-btn:hover::after{opacity:1}
+.ench-badge{display:inline-block;font-weight:900;font-size:12px;color:#f0c040;background:rgba(240,192,64,.13);border:1px solid rgba(240,192,64,.35);border-radius:5px;padding:0 5px;margin-left:5px;letter-spacing:.02em;vertical-align:middle;text-shadow:0 0 8px rgba(240,192,64,.5)}
 
 /* Owner search */
 .owner-result-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px;backdrop-filter:blur(12px);transition:border-color .18s;animation:cardIn .3s ease both;cursor:pointer}
@@ -678,8 +679,11 @@ async function loadAvg(slug){
 
 function getAvgData(name){
   if(!S.avgPrices) return null;
-  if(S.avgPrices[name]) return S.avgPrices[name];
-  const norm=name.toLowerCase().trim();
+  // Strip enchantment suffix like "(+13)" before looking up price history
+  const base=name.replace(/\s*\([^)]*\)\s*$/,'').trim();
+  const lookup=base||name;
+  if(S.avgPrices[lookup]) return S.avgPrices[lookup];
+  const norm=lookup.toLowerCase().trim();
   const key=S.avgPricesNorm?.[norm];
   if(key) return S.avgPrices[key];
   const found=Object.keys(S.avgPrices).find(k=>k.toLowerCase().includes(norm)||norm.includes(k.toLowerCase()));
@@ -723,7 +727,12 @@ function renderLavkas(){
   grid.innerHTML='';
   lv.forEach((lk,i)=>{
     const si=lk.items_sell||[],bi=lk.items_buy||[];
-    const prev=[...si.slice(0,3),...bi.slice(0,1)].map(id=>S.itemsData[typeof id==='string'?parseInt(id):id]||null).filter(Boolean);
+    const prev=[...si.slice(0,3),...bi.slice(0,1)].map(id=>{
+      const n=typeof id==='string'?parseInt(id):id;
+      const ench=typeof id==='string'?(id.match(/\(([^)]+)\)/)?.[1]||''):'';
+      const base=S.itemsData[n]||null;
+      return base?(ench?`${esc(base)}<span class="ench-badge" style="font-size:10px">(${esc(ench)})</span>`:esc(base)):null;
+    }).filter(Boolean);
     const srvL=SERVERS.find(s=>s.id===lk.serverId)?.label||`srv${lk.serverId}`;
     const card=document.createElement('div');
     card.className='lavka-card'; card.style.animationDelay=Math.min(i*.025,.4)+'s';
@@ -737,7 +746,7 @@ function renderLavkas(){
         <div class="lc-count-box sell"><div class="lc-count-label">Продаёт</div><div class="lc-count-val">${si.length}</div></div>
         <div class="lc-count-box buy"><div class="lc-count-label">Покупает</div><div class="lc-count-val">${bi.length}</div></div>
       </div>
-      ${prev.length?`<div class="lc-items-preview">${prev.map(n=>`<span class="item-tag">${esc(n)}</span>`).join('')}${(si.length+bi.length)>4?`<span class="item-tag">+${si.length+bi.length-4}</span>`:''}</div>`:''}`;
+      ${prev.length?`<div class="lc-items-preview">${prev.map(n=>`<span class="item-tag">${n}</span>`).join('')}${(si.length+bi.length)>4?`<span class="item-tag">+${si.length+bi.length-4}</span>`:''}</div>`:''}`;
     card.onclick=()=>openModal(lk);
     grid.appendChild(card);
   });
@@ -753,7 +762,7 @@ function openModal(lk){
     const ench=typeof id==='string'?(id.match(/\((.+)\)/)?.[1]||''):'';
     const name=S.itemsData[n]||`#${n}`;
     return `<div class="modal-item-row">
-      <span class="mir-name">${esc(name)}${ench?` <span style="color:var(--text-muted);font-size:10px">(${esc(ench)})</span>`:''}</span>
+      <span class="mir-name">${esc(name)}${ench?` <span class="ench-badge">(${esc(ench)})</span>`:''}</span>
       <span class="mir-count">${counts[i]||0}шт</span>
       <span class="mir-price ${type}">${fmt(prices[i]||0,true)} ${cur}</span>
     </div>`;
@@ -794,17 +803,25 @@ function doSearch(q){
 
 function doSearchItem(q){
   const ql=q.toLowerCase();
-  const matchIds=new Set();
-  Object.entries(S.itemsData).forEach(([id,name])=>{ if(name&&name.toLowerCase().includes(ql)) matchIds.add(parseInt(id)); });
   const sell=[],buy=[];
+  function parseSlot(id){
+    const isStr=typeof id==='string';
+    const n=isStr?parseInt(id):id;
+    const ench=isStr?(id.match(/\(([^)]+)\)/)?.[1]||''):'';
+    const baseName=S.itemsData[n]||`#${n}`;
+    const fullName=ench?`${baseName}(${ench})`:baseName;
+    return {n,ench,baseName,fullName};
+  }
   S.lavkas.forEach(lk=>{
     (lk.items_sell||[]).forEach((id,i)=>{
-      const n=typeof id==='string'?parseInt(id):id;
-      if(matchIds.has(n)) sell.push({name:S.itemsData[n]||`#${n}`,price:lk.price_sell[i]||0,count:lk.count_sell[i]||0,uid:lk.LavkaUid,owner:lk.username,srvId:lk.serverId,lk});
+      const {ench,baseName,fullName}=parseSlot(id);
+      if(fullName.toLowerCase().includes(ql))
+        sell.push({name:fullName,baseName,ench,price:lk.price_sell[i]||0,count:lk.count_sell[i]||0,uid:lk.LavkaUid,owner:lk.username,srvId:lk.serverId,lk});
     });
     (lk.items_buy||[]).forEach((id,i)=>{
-      const n=typeof id==='string'?parseInt(id):id;
-      if(matchIds.has(n)) buy.push({name:S.itemsData[n]||`#${n}`,price:lk.price_buy[i]||0,count:lk.count_buy[i]||0,uid:lk.LavkaUid,owner:lk.username,srvId:lk.serverId,lk});
+      const {ench,baseName,fullName}=parseSlot(id);
+      if(fullName.toLowerCase().includes(ql))
+        buy.push({name:fullName,baseName,ench,price:lk.price_buy[i]||0,count:lk.count_buy[i]||0,uid:lk.LavkaUid,owner:lk.username,srvId:lk.serverId,lk});
     });
   });
   const k=SORTS[S.sortIdx].k;
@@ -816,8 +833,8 @@ function doSearchItem(q){
   document.getElementById('buy-col-title').style.display='';
   document.getElementById('sell-results').innerHTML=sell.length?sell.map((it,i)=>resHTML(it,'sell',i)).join(''):`<div style="color:var(--text-muted);font-size:12px;padding:12px 4px">Не найдено</div>`;
   document.getElementById('buy-results').innerHTML=buy.length?buy.map((it,i)=>resHTML(it,'buy',i)).join(''):`<div style="color:var(--text-muted);font-size:12px;padding:12px 4px">Не найдено</div>`;
-  // Draw chart for best matching item name (most common in results)
-  const firstName=matchIds.size>0?S.itemsData[[...matchIds][0]]:null;
+  // Draw chart for first result's full name (supports enchanted items)
+  const firstName=(sell[0]||buy[0])?.name||null;
   if(firstName){ S.lastChartItem=firstName; drawChart(firstName); }
   else { S.lastChartItem=null; document.getElementById('chart-panel').style.display='none'; }
 }
@@ -837,9 +854,12 @@ function resHTML(it,type,idx){
   const cur=it.srvId===0?'VC$':'SA$';
   const li=S.lavkas.indexOf(it.lk);
   const ne=it.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const nameHtml=it.ench
+    ?`${esc(it.baseName)}<span class="ench-badge">(${esc(it.ench)})</span>`
+    :esc(it.name);
   return `<div class="search-result-item" style="animation-delay:${Math.min(idx*.02,.35)}s">
     <div class="sri-top">
-      <div class="sri-name sri-name-btn" onclick="openPriceModal('${ne}')">${esc(it.name)}</div>
+      <div class="sri-name sri-name-btn" onclick="openPriceModal('${ne}')">${nameHtml}</div>
       <div class="sri-price ${type}">${fmt(it.price,true)} ${cur}</div>
     </div>
     <div class="sri-meta">
