@@ -59,6 +59,20 @@ header{display:flex;align-items:center;justify-content:space-between;padding:24p
 .status-dot.loading{background:var(--yellow);box-shadow:0 0 8px var(--yellow)}
 .status-dot.error{background:var(--red);box-shadow:0 0 8px var(--red)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* ONLINE BADGE */
+.online-pill{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:7px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);backdrop-filter:blur(12px);transition:border-color .3s}
+.online-pill.has-queue{border-color:rgba(251,191,36,.3)}
+.online-pill.has-queue-red{border-color:rgba(248,113,113,.4)}
+.online-pill .op-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);flex-shrink:0}
+.online-pill .op-online{color:var(--green);font-weight:700}
+.online-pill .op-sep{color:var(--border2);margin:0 2px}
+.online-pill .op-queue{color:var(--yellow);font-weight:700}
+.online-pill.has-queue-red .op-queue{color:var(--red)}
+.online-pill .op-queue-label{color:rgba(251,191,36,.6)}
+.online-pill.has-queue-red .op-queue-label{color:rgba(248,113,113,.5)}
+.op-queue-wrap{display:none}
+.online-pill.has-queue .op-queue-wrap,.online-pill.has-queue-red .op-queue-wrap{display:contents}
+@media(max-width:500px){.online-pill .op-label{display:none}}
 
 /* TOPBAR */
 .topbar{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:14px;align-items:center}
@@ -342,6 +356,19 @@ footer a{color:var(--accent);text-decoration:none}
       <div class="status-dot loading" id="status-dot"></div>
       <span id="status-text">Загрузка...</span>
     </div>
+    <div class="online-pill" id="online-pill" title="Онлайн и очередь на сервере">
+      <div class="op-dot"></div>
+      <span class="op-label" style="color:var(--text-muted)">Онлайн</span>
+      <span class="op-online" id="op-online">—</span>
+      <span class="op-sep">·</span>
+      <span class="op-label" style="color:var(--text-muted)">Лавок</span>
+      <span id="op-lavkas">—</span>
+      <span class="op-queue-wrap">
+        <span class="op-sep">·</span>
+        <span class="op-queue-label">очередь</span>
+        <span class="op-queue" id="op-queue">0</span>
+      </span>
+    </div>
   </header>
 
   <div class="topbar">
@@ -568,6 +595,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   buildChips();
   buildSortBtns();
   loadData();
+  loadServerOnline(); // load online/queue for current server
+  setInterval(loadServerOnline, 60000); // refresh every 60s
   inp.addEventListener('input',()=>{
     const q=inp.value.trim();
     if(q.length>1){ setMode('search'); doSearch(q); }
@@ -602,6 +631,7 @@ function buildChips(){
       document.getElementById('srv-current-label').textContent=srv.label;
       closeSrvDropdown();
       loadData();
+      loadServerOnline();
     };
     wrap.appendChild(c);
   });
@@ -657,6 +687,9 @@ async function loadData(){
     const curQ=document.getElementById('search').value.trim();
     if(S.mode==='search'&&curQ.length>1) doSearch(curQ);
     setStatus('ok',`${srv?.label||S.srvId} · ${S.lavkas.length} лавок`);
+    // update lavka count in online badge
+    const opL=document.getElementById('op-lavkas');
+    if(opL) opL.textContent=S.lavkas.length;
   }catch(e){
     setStatus('error','Ошибка: '+e.message);
     document.getElementById('lavka-grid').innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-text">Ошибка загрузки</div></div>`;
@@ -1129,6 +1162,87 @@ function closePriceModal(e){
     document.getElementById('price-modal-overlay').classList.remove('open');
 }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); closePriceModal(); } });
+
+// ── SERVER ONLINE / QUEUE ──────────────────
+// Mapping: slug → key in API response + server name to match
+// API structure: { arizona: [{name, online, queue}...], vc: [{online, queue}] }
+const SLUG_TO_API = {
+  'vc':          { section:'vc',      name:null },       // Vice City — единственный в секции vc
+  'phoenix':     { section:'arizona', name:'Phoenix' },
+  'tucson':      { section:'arizona', name:'Tucson' },
+  'scottdale':   { section:'arizona', name:'Scottdale' },
+  'chandler':    { section:'arizona', name:'Chandler' },
+  'brainburg':   { section:'arizona', name:'Brainburg' },
+  'saintrose':   { section:'arizona', name:'Saint-Rose' },
+  'mesa':        { section:'arizona', name:'Mesa' },
+  'red-rock':    { section:'arizona', name:'Red-Rock' },
+  'yuma':        { section:'arizona', name:'Yuma' },
+  'surprise':    { section:'arizona', name:'Surprise' },
+  'prescott':    { section:'arizona', name:'Prescott' },
+  'glendale':    { section:'arizona', name:'Glendale' },
+  'kingman':     { section:'arizona', name:'Kingman' },
+  'winslow':     { section:'arizona', name:'Winslow' },
+  'payson':      { section:'arizona', name:'Payson' },
+  'gilbert':     { section:'arizona', name:'Gilbert' },
+  'show-low':    { section:'arizona', name:'Show Low' },
+  'casa-grande': { section:'arizona', name:'Casa-Grande' },
+  'page':        { section:'arizona', name:'Page' },
+  'sun-city':    { section:'arizona', name:'Sun-City' },
+  'queen-creek': { section:'arizona', name:'Queen-Creek' },
+  'sedona':      { section:'arizona', name:'Sedona' },
+  'holiday':     { section:'arizona', name:'Holiday' },
+  'wednesday':   { section:'arizona', name:'Wednesday' },
+  'yava':        { section:'arizona', name:'Yava' },
+  'faraway':     { section:'arizona', name:'Faraway' },
+  'bumble-bee':  { section:'arizona', name:'Bumble Bee' },
+  'christmas':   { section:'arizona', name:'Christmas' },
+  'mirage':      { section:'arizona', name:'Mirage' },
+  'love':        { section:'arizona', name:'Love' },
+  'drake':       { section:'arizona', name:'Drake' },
+  'space':       { section:'arizona', name:'Space' },
+};
+
+let _serversCache = null, _serversCacheTs = 0;
+
+async function loadServerOnline(){
+  const srv = SERVERS.find(s => s.id === S.srvId);
+  if(!srv) return;
+  const mapping = SLUG_TO_API[srv.slug];
+  if(!mapping) return;
+
+  try{
+    // Cache the full response for 55s to avoid duplicate fetches
+    const now = Date.now();
+    if(!_serversCache || now - _serversCacheTs > 55000){
+      const r = await ft('https://api.arizona-five.com/launcher/servers', 8000);
+      if(!r.ok) return;
+      _serversCache = await r.json();
+      _serversCacheTs = now;
+    }
+    const data = _serversCache;
+
+    let entry;
+    if(mapping.section === 'vc'){
+      entry = data.vc?.[0];
+    } else {
+      const list = data[mapping.section] || [];
+      entry = list.find(s => s.name === mapping.name);
+    }
+
+    if(!entry) return;
+
+    const pill = document.getElementById('online-pill');
+    document.getElementById('op-online').textContent = entry.online.toLocaleString('ru-RU');
+    document.getElementById('op-lavkas').textContent = S.lavkas.length || '—';
+
+    const q = entry.queue || 0;
+    document.getElementById('op-queue').textContent = q.toLocaleString('ru-RU');
+    pill.classList.remove('has-queue','has-queue-red');
+    if(q > 0 && q < 150) pill.classList.add('has-queue');
+    else if(q >= 150) pill.classList.add('has-queue','has-queue-red');
+
+  }catch(e){ console.warn('loadServerOnline', e); }
+}
 
 // ── HELPERS ────────────────────────────────
 function fmt(n,full=false){
