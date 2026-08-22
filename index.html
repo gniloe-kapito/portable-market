@@ -452,7 +452,7 @@ footer a{color:var(--accent);text-decoration:none}
 
   <footer>
     ArzMarket &nbsp;·&nbsp;
-    <a href="https://api.arz.market" target="_blank">api.arz.market</a> &amp;
+    <a href="https://va-ta.com" target="_blank">va-ta.com</a> &amp;
     <a href="https://github.com/FREYM1337/forumnick" target="_blank">GitHub FREYM1337</a>
     &nbsp;·&nbsp; Не является официальным сервисом Arizona RP
   </footer>
@@ -537,7 +537,8 @@ footer a{color:var(--accent);text-decoration:none}
   });
 })();
 
-const WORKER='https://portable-market.danvox123hyu.workers.dev';
+const API_BASE='https://va-ta.com/api/site';
+const MARKET_PAGE_LIMIT=60;
 
 const SERVERS=[
   {id:0,  slug:'vc',          label:'[0] Vice City'},
@@ -675,19 +676,13 @@ async function loadData(){
   showSkel();
   const srv=SERVERS.find(s=>s.id===S.srvId);
   try{
-    const [lavRes,itmRes]=await Promise.all([
-      ft(`${WORKER}/api/marketplace/${S.srvId}`,10000),
-      ft(`${WORKER}/api/items`,10000)
-    ]);
-    if(lavRes.ok){ const r=await lavRes.json(); S.lavkas=Array.isArray(r)?r:[]; }
-    if(itmRes.ok){ const r=await itmRes.json(); S.itemsData={}; if(Array.isArray(r)) r.forEach(v=>{S.itemsData[v.id]=v.name;}); }
-    loadAvg(srv?.slug);
+    S.lavkas=await fetchAllShops(S.srvId);
+    await loadAvg(S.srvId);
     updStats(srv);
     renderLavkas();
     const curQ=document.getElementById('search').value.trim();
     if(S.mode==='search'&&curQ.length>1) doSearch(curQ);
     setStatus('ok',`${srv?.label||S.srvId} · ${S.lavkas.length} лавок`);
-    // update lavka count in online badge
     const opL=document.getElementById('op-lavkas');
     if(opL) opL.textContent=S.lavkas.length;
   }catch(e){
@@ -696,25 +691,90 @@ async function loadData(){
   }
 }
 
-async function loadAvg(slug){
-  if(!slug) return;
+async function fetchJson(url,ms=10000){
+  const r=await ft(url,ms);
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+function normalizeShop(shop){
+  const sellSlots=Array.isArray(shop.sell_slots)?shop.sell_slots:[];
+  const buySlots=Array.isArray(shop.buy_slots)?shop.buy_slots:[];
+  return {
+    ...shop,
+    username:shop.owner||shop.username||'—',
+    LavkaUid:shop.shop_num??shop.LavkaUid??0,
+    serverId:shop.server_id??shop.serverId??S.srvId,
+    items_sell:sellSlots.map(x=>x.name??x.item_id??''),
+    price_sell:sellSlots.map(x=>x.price??0),
+    count_sell:sellSlots.map(x=>x.qty??1),
+    items_buy:buySlots.map(x=>x.name??x.item_id??''),
+    price_buy:buySlots.map(x=>x.price??0),
+    count_buy:buySlots.map(x=>x.qty??1)
+  };
+}
+
+async function fetchAllShops(serverId){
+  const shops=[];
+  let page=1,pages=1;
+  do{
+    const u=new URL(`${API_BASE}/shops`);
+    u.searchParams.set('server',String(serverId));
+    u.searchParams.set('q','');
+    u.searchParams.set('page',String(page));
+    u.searchParams.set('limit',String(MARKET_PAGE_LIMIT));
+    u.searchParams.set('sort','recent');
+    u.searchParams.set('type','');
+    const data=await fetchJson(u.toString(),12000);
+    if(data.ok===false) throw new Error('API лавок вернул ошибку');
+    shops.push(...(Array.isArray(data.shops)?data.shops:[]));
+    pages=Math.max(1,parseInt(data.pages)||1);
+    page++;
+  }while(page<=pages);
+  return shops.map(normalizeShop);
+}
+
+async function loadAvg(serverId){
   try{
-    const r=await ft(`${WORKER}/api/avg?server=${slug}&type=sell`,8000);
-    if(r.ok){
-      S.avgPrices=await r.json();
-      S.avgPricesNorm={};
-      Object.keys(S.avgPrices).forEach(k=>{ S.avgPricesNorm[k.toLowerCase().trim()]=k; });
-    }
+    const u=new URL(`${API_BASE}/prices`);
+    u.searchParams.set('q','');
+    u.searchParams.set('server',String(serverId));
+    u.searchParams.set('limit','60');
+    const data=await fetchJson(u.toString(),10000);
+    S.avgPrices={};
+    S.avgPricesNorm={};
+    (Array.isArray(data.items)?data.items:[]).forEach(it=>storePriceData(it.name,it));
   }catch(e){ console.warn('loadAvg',e); }
-  // Redraw chart if one was open
   if(S.lastChartItem) drawChart(S.lastChartItem);
 }
 
+function storePriceData(name,src){
+  if(!name) return null;
+  const rawPoints=(src.points||src.list||[]).map(p=>Array.isArray(p)?p:{0:p.dt,1:p.volume||p.vol||0,4:p.price}).map(p=>[p[0],p[1]||0,null,null,p[4]||0]);
+  const points=src.points?rawPoints.reverse():rawPoints;
+  const data={...src,list:points};
+  S.avgPrices[name]=data;
+  S.avgPricesNorm=S.avgPricesNorm||{};
+  S.avgPricesNorm[name.toLowerCase().trim()]=name;
+  return data;
+}
+
+async function loadItemHistory(name){
+  const base=stripEnchant(name);
+  const cached=getAvgData(base)||getAvgData(name);
+  if(cached?.list?.length) return cached;
+  const u=new URL(`${API_BASE}/item-history`);
+  u.searchParams.set('name',base||name);
+  u.searchParams.set('server',String(S.srvId));
+  const data=await fetchJson(u.toString(),10000);
+  if(data.ok===false||data.found===false) return null;
+  return storePriceData(data.name||base||name,data);
+}
+
+function stripEnchant(name){ return String(name||'').replace(/\s*\(\+?\d+\)\s*$/,'').trim(); }
 function getAvgData(name){
   if(!S.avgPrices) return null;
-  // Strip enchantment suffix like "(+13)" before looking up price history
-  const base=name.replace(/\s*\([^)]*\)\s*$/,'').trim();
-  const lookup=base||name;
+  const lookup=stripEnchant(name)||name;
   if(S.avgPrices[lookup]) return S.avgPrices[lookup];
   const norm=lookup.toLowerCase().trim();
   const key=S.avgPricesNorm?.[norm];
@@ -723,6 +783,17 @@ function getAvgData(name){
   return found?S.avgPrices[found]:null;
 }
 
+function marketItem(raw){
+  if(typeof raw==='number') return {n:raw,ench:'',baseName:S.itemsData[raw]||`#${raw}`,fullName:S.itemsData[raw]||`#${raw}`};
+  const str=String(raw||'').trim();
+  const legacy=str.match(/^(\d+)(?:\(([^)]*)\))?$/);
+  if(legacy){
+    const n=parseInt(legacy[1]), ench=legacy[2]||'';
+    const baseName=S.itemsData[n]||`#${n}`;
+    return {n,ench,baseName,fullName:ench?`${baseName}(+${ench.replace(/^\+/,'')})`:baseName};
+  }
+  return {n:null,ench:'',baseName:str,fullName:str};
+}
 function ft(url,ms){ return Promise.race([fetch(url),new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),ms))]); }
 
 // ── STATS ──────────────────────────────────
@@ -761,10 +832,9 @@ function renderLavkas(){
   lv.forEach((lk,i)=>{
     const si=lk.items_sell||[],bi=lk.items_buy||[];
     const prev=[...si.slice(0,3),...bi.slice(0,1)].map(id=>{
-      const n=typeof id==='string'?parseInt(id):id;
-      const ench=typeof id==='string'?(id.match(/\(([^)]+)\)/)?.[1]||''):'';
-      const base=S.itemsData[n]||null;
-      return base?(ench?`${esc(base)}<span class="ench-badge" style="font-size:10px">(${esc(ench)})</span>`:esc(base)):null;
+      const item=marketItem(id);
+      if(!item.fullName) return null;
+      return item.ench?`${esc(item.baseName)}<span class="ench-badge" style="font-size:10px">(${esc(item.ench)})</span>`:esc(item.fullName);
     }).filter(Boolean);
     const srvL=SERVERS.find(s=>s.id===lk.serverId)?.label||`srv${lk.serverId}`;
     const card=document.createElement('div');
@@ -791,11 +861,9 @@ function openModal(lk){
   const bi=lk.items_buy||[],bp=lk.price_buy||[],bc=lk.count_buy||[];
   const cur=lk.serverId===0?'VC$':'SA$';
   const rows=(items,prices,counts,type)=>items.map((id,i)=>{
-    const n=typeof id==='string'?parseInt(id):id;
-    const ench=typeof id==='string'?(id.match(/\((.+)\)/)?.[1]||''):'';
-    const name=S.itemsData[n]||`#${n}`;
+    const item=marketItem(id);
     return `<div class="modal-item-row">
-      <span class="mir-name">${esc(name)}${ench?` <span class="ench-badge">(${esc(ench)})</span>`:''}</span>
+      <span class="mir-name">${esc(item.baseName)}${item.ench?` <span class="ench-badge">(${esc(item.ench)})</span>`:''}</span>
       <span class="mir-count">${counts[i]||0}шт</span>
       <span class="mir-price ${type}">${fmt(prices[i]||0,true)} ${cur}</span>
     </div>`;
@@ -837,14 +905,7 @@ function doSearch(q){
 function doSearchItem(q){
   const ql=q.toLowerCase();
   const sell=[],buy=[];
-  function parseSlot(id){
-    const isStr=typeof id==='string';
-    const n=isStr?parseInt(id):id;
-    const ench=isStr?(id.match(/\(([^)]+)\)/)?.[1]||''):'';
-    const baseName=S.itemsData[n]||`#${n}`;
-    const fullName=ench?`${baseName}(${ench})`:baseName;
-    return {n,ench,baseName,fullName};
-  }
+  function parseSlot(id){ return marketItem(id); }
   S.lavkas.forEach(lk=>{
     (lk.items_sell||[]).forEach((id,i)=>{
       const {ench,baseName,fullName}=parseSlot(id);
@@ -918,9 +979,9 @@ function ownerResHTML(lk,idx){
 }
 
 // ── INLINE CHART (fix 3: hover tooltip) ────
-function drawChart(itemName){
+async function drawChart(itemName){
   const panel=document.getElementById('chart-panel');
-  const data=getAvgData(itemName);
+  const data=await loadItemHistory(itemName);
   if(!data||!data.list?.length){ panel.style.display='none'; return; }
   panel.style.display='block';
   document.getElementById('chart-item-name').textContent=itemName;
@@ -1007,7 +1068,7 @@ function drawChart(itemName){
 })();
 
 // ── PRICE MODAL (fix 1+2: 14 days, redesigned) ──
-function openPriceModal(itemName){
+async function openPriceModal(itemName){
   const overlay=document.getElementById('price-modal-overlay');
   const noData=document.getElementById('pm-no-data');
   const canvas=document.getElementById('pm-canvas');
@@ -1016,7 +1077,7 @@ function openPriceModal(itemName){
   document.getElementById('pm-sub').textContent=`Средняя цена продажи (${S.srvId===0?'VC$':'SA$'}) · ${srv?.label||''}`;
   overlay.classList.add('open');
 
-  const data=getAvgData(itemName);
+  const data=await loadItemHistory(itemName);
   if(!data||!data.list?.length){
     noData.style.display='block'; canvas.style.display='none';
     ['pm-avg','pm-min','pm-max','pm-vol'].forEach(id=>document.getElementById(id).textContent='—');
